@@ -1,0 +1,179 @@
+{
+  "contract_version": "1",
+  "data_label": "Synthetic example — not market data or a real forecast",
+  "timeline_id": "fixture-1",
+  "run_id": "fixture-1-run-3",
+  "dataset_version": "synthetic-v1",
+  "model_version": "fixture-v1",
+  "corpus_version": "empty-v1",
+  "request_id": "commit-003",
+  "revision": 3,
+  "parent_revision": 2,
+  "changed_from": "2025-08-12",
+  "replace_through": "2025-08-18",
+  "series_mode": "suffix",
+  "evidence_cutoff": "2025-06-11T12:29:59Z",
+  "prompts": [
+    {
+      "date_precision": "day",
+      "requested_start": "2025-06-11",
+      "requested_end": null,
+      "effective_start": "2025-06-11",
+      "effective_end": null,
+      "effective_at": "2025-06-11T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-06-11"
+      ],
+      "operation": "set",
+      "value": 0.4,
+      "unit": "percent",
+      "reference": null,
+      "id": "p1",
+      "display_number": 1,
+      "creation_order": 1,
+      "text": "Set June 11 CPI to 0.4%",
+      "evidence_ids": [],
+      "resolved_value": 0.4,
+      "status": "supported"
+    },
+    {
+      "date_precision": "day",
+      "requested_start": "2025-07-15",
+      "requested_end": null,
+      "effective_start": "2025-07-15",
+      "effective_end": null,
+      "effective_at": "2025-07-15T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-07-15"
+      ],
+      "operation": "add_pp",
+      "value": 0.1,
+      "unit": "percentage_points",
+      "reference": "preceding",
+      "id": "p2",
+      "display_number": 2,
+      "creation_order": 2,
+      "text": "July 15: add 0.1 percentage points to preceding reading",
+      "evidence_ids": [],
+      "resolved_value": 0.5,
+      "status": "supported"
+    },
+    {
+      "date_precision": "day",
+      "requested_start": "2025-08-12",
+      "requested_end": null,
+      "effective_start": "2025-08-12",
+      "effective_end": null,
+      "effective_at": "2025-08-12T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-08-12"
+      ],
+      "operation": "carry",
+      "value": null,
+      "unit": "percent",
+      "reference": "p2",
+      "id": "p3",
+      "display_number": 3,
+      "creation_order": 3,
+      "text": "August 12: keep July simulated reading",
+      "evidence_ids": [],
+      "resolved_value": 0.5,
+      "status": "supported"
+    }
+  ],
+  "panels": {
+    "p1": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.4%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    },
+    "p2": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.5%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    },
+    "p3": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.5%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    }
+  },
+  "series": {
+    "target_id": "SPY",
+    "base_date": "2025-06-10",
+    "base_value": 100,
+    "unit": "index",
+    "frequency": "trading_session",
+    "points": [
+      {
+        "date": "2025-08-12",
+        "kind": "simulated",
+        "value": 119.3,
+        "q10": 118.3,
+        "q90": 120.3,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-13",
+        "kind": "simulated",
+        "value": 119.8,
+        "q10": 118.8,
+        "q90": 120.8,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-14",
+        "kind": "simulated",
+        "value": 120.3,
+        "q10": 119.3,
+        "q90": 121.3,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-15",
+        "kind": "simulated",
+        "value": 120.8,
+        "q10": 119.8,
+        "q90": 121.8,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-18",
+        "kind": "simulated",
+        "value": 121.3,
+        "q10": 120.3,
+        "q90": 122.3,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      }
+    ]
+  }
+}

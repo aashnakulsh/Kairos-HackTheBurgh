@@ -1,0 +1,21 @@
+{
+  "status": "supported",
+  "reason": null,
+  "engine": "synthetic",
+  "model_version": "fixture-v1",
+  "support_count": 0,
+  "points": [
+    {
+      "date": "2025-06-11",
+      "kind": "simulated",
+      "value": 100.4,
+      "q10": 99.4,
+      "q90": 101.4,
+      "engine": "synthetic",
+      "segment_id": "p1"
+    }
+  ],
+  "assumptions": [
+    "Synthetic result only"
+  ]
+}

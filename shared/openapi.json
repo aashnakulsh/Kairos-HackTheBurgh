@@ -1,0 +1,1857 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "TeamRelay fixture API \u2014 synthetic only",
+    "version": "1"
+  },
+  "paths": {
+    "/api/capabilities": {
+      "get": {
+        "summary": "Get Capabilities",
+        "operationId": "get_capabilities_api_capabilities_get",
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Capabilities"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timelines": {
+      "post": {
+        "summary": "Create",
+        "operationId": "create_api_timelines_post",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateTimelineRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Conflict",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "410": {
+            "description": "Gone",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Unprocessable Content",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Service Unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/timelines/{timeline_id}": {
+      "get": {
+        "summary": "Restore",
+        "operationId": "restore_api_timelines__timeline_id__get",
+        "parameters": [
+          {
+            "name": "timeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timeline Id"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/timelines/{timeline_id}/revisions/{revision}": {
+      "get": {
+        "summary": "Historical",
+        "operationId": "historical_api_timelines__timeline_id__revisions__revision__get",
+        "parameters": [
+          {
+            "name": "timeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timeline Id"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/timelines/{timeline_id}/interpret": {
+      "post": {
+        "summary": "Interpret",
+        "operationId": "interpret_api_timelines__timeline_id__interpret_post",
+        "parameters": [
+          {
+            "name": "timeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timeline Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InterpretRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/ReadyDraft"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    }
+                  ],
+                  "title": "Response Interpret Api Timelines  Timeline Id  Interpret Post"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/timelines/{timeline_id}/commit": {
+      "post": {
+        "summary": "Commit",
+        "operationId": "commit_api_timelines__timeline_id__commit_post",
+        "parameters": [
+          {
+            "name": "timeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timeline Id"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CommitRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/RunResponse"
+                    },
+                    {
+                      "$ref": "#/components/schemas/Problem"
+                    }
+                  ],
+                  "title": "Response Commit Api Timelines  Timeline Id  Commit Post"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
+    "/api/timelines/{timeline_id}/revisions/{revision}/reveal": {
+      "get": {
+        "summary": "Reveal",
+        "operationId": "reveal_api_timelines__timeline_id__revisions__revision__reveal_get",
+        "parameters": [
+          {
+            "name": "timeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timeline Id"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Revision"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RevealResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "410": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Gone"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Capabilities": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "1",
+            "title": "Contract Version"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "fixture",
+              "live"
+            ],
+            "title": "Mode"
+          },
+          "data_label": {
+            "type": "string",
+            "title": "Data Label"
+          },
+          "targets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Targets"
+          },
+          "unit": {
+            "type": "string",
+            "const": "index",
+            "title": "Unit"
+          },
+          "frequency": {
+            "type": "string",
+            "const": "trading_session",
+            "title": "Frequency"
+          },
+          "default_viewport": {
+            "$ref": "#/components/schemas/Viewport"
+          },
+          "coverage": {
+            "$ref": "#/components/schemas/Coverage"
+          },
+          "supported_event_families": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Supported Event Families"
+          },
+          "default_horizon_sessions": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Default Horizon Sessions"
+          },
+          "max_horizon_sessions": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Max Horizon Sessions"
+          },
+          "max_prompts": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Max Prompts"
+          },
+          "evidence_available": {
+            "type": "boolean",
+            "title": "Evidence Available"
+          },
+          "display_rights": {
+            "type": "string",
+            "title": "Display Rights"
+          },
+          "fixture_presets": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Fixture Presets"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "contract_version",
+          "mode",
+          "data_label",
+          "targets",
+          "unit",
+          "frequency",
+          "default_viewport",
+          "coverage",
+          "supported_event_families",
+          "default_horizon_sessions",
+          "max_horizon_sessions",
+          "max_prompts",
+          "evidence_available",
+          "display_rights",
+          "fixture_presets"
+        ],
+        "title": "Capabilities"
+      },
+      "CommitRequest": {
+        "properties": {
+          "draft_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Draft Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "draft_id",
+          "expected_revision",
+          "request_id"
+        ],
+        "title": "CommitRequest"
+      },
+      "Coverage": {
+        "properties": {
+          "first_session": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "First Session"
+          },
+          "last_session": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Last Session"
+          },
+          "gaps": {
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "type": "array",
+            "title": "Gaps"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "first_session",
+          "last_session",
+          "gaps"
+        ],
+        "title": "Coverage"
+      },
+      "CreateTimelineRequest": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "const": "SPY",
+            "title": "Target Id"
+          },
+          "request_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Request Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_id",
+          "request_id"
+        ],
+        "title": "CreateTimelineRequest"
+      },
+      "Evidence": {
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "title": {
+            "type": "string",
+            "title": "Title"
+          },
+          "url": {
+            "type": "string",
+            "pattern": "^https?://",
+            "title": "Url"
+          },
+          "publication_time": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Publication Time"
+          },
+          "passage_locator": {
+            "type": "string",
+            "title": "Passage Locator"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "id",
+          "title",
+          "url",
+          "publication_time",
+          "passage_locator"
+        ],
+        "title": "Evidence"
+      },
+      "Hypothesis": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Source Ids"
+          },
+          "user_assumption": {
+            "type": "boolean",
+            "title": "User Assumption"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "source_ids",
+          "user_assumption"
+        ],
+        "title": "Hypothesis"
+      },
+      "Impact": {
+        "properties": {
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "emoji": {
+            "type": "string",
+            "title": "Emoji"
+          },
+          "exposure": {
+            "type": "string",
+            "enum": [
+              "direct",
+              "indirect"
+            ],
+            "title": "Exposure"
+          },
+          "direction": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "positive",
+                  "negative",
+                  "neutral"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Direction"
+          },
+          "metric_kind": {
+            "type": "string",
+            "enum": [
+              "proxy_change",
+              "index_contribution",
+              "qualitative"
+            ],
+            "title": "Metric Kind"
+          },
+          "magnitude": {
+            "anyOf": [
+              {
+                "type": "number",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Magnitude"
+          },
+          "unit": {
+            "anyOf": [
+              {
+                "type": "string",
+                "enum": [
+                  "percent",
+                  "percentage_points"
+                ]
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Unit"
+          },
+          "comparator": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparator"
+          },
+          "horizon": {
+            "type": "string",
+            "title": "Horizon"
+          },
+          "method": {
+            "type": "string",
+            "title": "Method"
+          },
+          "source_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Source Ids"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "name",
+          "emoji",
+          "exposure",
+          "direction",
+          "metric_kind",
+          "magnitude",
+          "unit",
+          "comparator",
+          "horizon",
+          "method",
+          "source_ids"
+        ],
+        "title": "Impact"
+      },
+      "Instruction": {
+        "properties": {
+          "date_precision": {
+            "type": "string",
+            "enum": [
+              "day",
+              "year",
+              "interval"
+            ],
+            "title": "Date Precision"
+          },
+          "requested_start": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Requested Start"
+          },
+          "requested_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested End"
+          },
+          "effective_start": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Effective Start"
+          },
+          "effective_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective End"
+          },
+          "effective_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Effective At"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "America/New_York",
+            "title": "Timezone"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "release",
+              "interval",
+              "recurring"
+            ],
+            "title": "Scope"
+          },
+          "release_dates": {
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "type": "array",
+            "title": "Release Dates"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "set",
+              "add_pp",
+              "carry"
+            ],
+            "title": "Operation"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "percent",
+              "percentage_points"
+            ],
+            "title": "Unit"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date_precision",
+          "requested_start",
+          "requested_end",
+          "effective_start",
+          "effective_end",
+          "effective_at",
+          "timezone",
+          "scope",
+          "release_dates",
+          "operation",
+          "value",
+          "unit",
+          "reference"
+        ],
+        "title": "Instruction",
+        "description": "Backend-validated instruction; relative expressions stay relative."
+      },
+      "InterpretRequest": {
+        "properties": {
+          "text": {
+            "type": "string",
+            "maxLength": 10000,
+            "minLength": 1,
+            "title": "Text"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "add",
+              "replace"
+            ],
+            "title": "Mode"
+          },
+          "selected_prompt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Prompt Id"
+          },
+          "playhead": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Playhead"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "text",
+          "mode",
+          "expected_revision"
+        ],
+        "title": "InterpretRequest"
+      },
+      "Panel": {
+        "properties": {
+          "summary": {
+            "type": "string",
+            "title": "Summary"
+          },
+          "hypotheses": {
+            "items": {
+              "$ref": "#/components/schemas/Hypothesis"
+            },
+            "type": "array",
+            "title": "Hypotheses"
+          },
+          "evidence": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Evidence"
+          },
+          "impacts": {
+            "items": {
+              "$ref": "#/components/schemas/Impact"
+            },
+            "type": "array",
+            "title": "Impacts"
+          },
+          "horizon": {
+            "type": "string",
+            "title": "Horizon"
+          },
+          "comparison": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Comparison"
+          },
+          "engine": {
+            "type": "string",
+            "title": "Engine"
+          },
+          "support_count": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Support Count"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "unsupported"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "summary",
+          "hypotheses",
+          "evidence",
+          "impacts",
+          "horizon",
+          "comparison",
+          "engine",
+          "support_count",
+          "status"
+        ],
+        "title": "Panel"
+      },
+      "Point": {
+        "properties": {
+          "date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Date"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "observed",
+              "simulated",
+              "gap"
+            ],
+            "title": "Kind"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "q10": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q10"
+          },
+          "q90": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Q90"
+          },
+          "engine": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Engine"
+          },
+          "segment_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Segment Id"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date",
+          "kind",
+          "value",
+          "q10",
+          "q90",
+          "engine",
+          "segment_id"
+        ],
+        "title": "Point"
+      },
+      "Problem": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "enum": [
+              "needs_clarification",
+              "unsupported",
+              "conflict",
+              "invalid",
+              "unavailable",
+              "not_found",
+              "draft_expired"
+            ],
+            "title": "Status"
+          },
+          "code": {
+            "type": "string",
+            "title": "Code"
+          },
+          "reason": {
+            "type": "string",
+            "title": "Reason"
+          },
+          "choices": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Choices"
+          },
+          "current_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Current Revision"
+          },
+          "retryable": {
+            "type": "boolean",
+            "title": "Retryable"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "code",
+          "reason",
+          "choices",
+          "current_revision",
+          "retryable"
+        ],
+        "title": "Problem"
+      },
+      "Prompt": {
+        "properties": {
+          "date_precision": {
+            "type": "string",
+            "enum": [
+              "day",
+              "year",
+              "interval"
+            ],
+            "title": "Date Precision"
+          },
+          "requested_start": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Requested Start"
+          },
+          "requested_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Requested End"
+          },
+          "effective_start": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Effective Start"
+          },
+          "effective_end": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Effective End"
+          },
+          "effective_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Effective At"
+          },
+          "timezone": {
+            "type": "string",
+            "const": "America/New_York",
+            "title": "Timezone"
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "release",
+              "interval",
+              "recurring"
+            ],
+            "title": "Scope"
+          },
+          "release_dates": {
+            "items": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+            },
+            "type": "array",
+            "title": "Release Dates"
+          },
+          "operation": {
+            "type": "string",
+            "enum": [
+              "set",
+              "add_pp",
+              "carry"
+            ],
+            "title": "Operation"
+          },
+          "value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Value"
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "percent",
+              "percentage_points"
+            ],
+            "title": "Unit"
+          },
+          "reference": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Reference"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Id"
+          },
+          "display_number": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Display Number"
+          },
+          "creation_order": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Creation Order"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "evidence_ids": {
+            "items": {
+              "type": "string",
+              "minLength": 1
+            },
+            "type": "array",
+            "title": "Evidence Ids"
+          },
+          "resolved_value": {
+            "anyOf": [
+              {
+                "type": "number"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Resolved Value"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "supported",
+              "unsupported"
+            ],
+            "title": "Status"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "date_precision",
+          "requested_start",
+          "requested_end",
+          "effective_start",
+          "effective_end",
+          "effective_at",
+          "timezone",
+          "scope",
+          "release_dates",
+          "operation",
+          "value",
+          "unit",
+          "reference",
+          "id",
+          "display_number",
+          "creation_order",
+          "text",
+          "evidence_ids",
+          "resolved_value",
+          "status"
+        ],
+        "title": "Prompt"
+      },
+      "ReadyDraft": {
+        "properties": {
+          "status": {
+            "type": "string",
+            "const": "ready",
+            "title": "Status"
+          },
+          "draft_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Draft Id"
+          },
+          "timeline_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Timeline Id"
+          },
+          "expected_revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Expected Revision"
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "add",
+              "replace"
+            ],
+            "title": "Mode"
+          },
+          "selected_prompt_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Selected Prompt Id"
+          },
+          "text": {
+            "type": "string",
+            "title": "Text"
+          },
+          "expires_at": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+            "title": "Expires At"
+          },
+          "instruction": {
+            "$ref": "#/components/schemas/Instruction"
+          },
+          "warnings": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array",
+            "title": "Warnings"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "status",
+          "draft_id",
+          "timeline_id",
+          "expected_revision",
+          "mode",
+          "selected_prompt_id",
+          "text",
+          "expires_at",
+          "instruction",
+          "warnings"
+        ],
+        "title": "ReadyDraft"
+      },
+      "RevealResponse": {
+        "properties": {
+          "timeline_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Timeline Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Revision"
+          },
+          "data_label": {
+            "type": "string",
+            "title": "Data Label"
+          },
+          "series": {
+            "$ref": "#/components/schemas/Series"
+          },
+          "sources": {
+            "items": {
+              "$ref": "#/components/schemas/Evidence"
+            },
+            "type": "array",
+            "title": "Sources"
+          },
+          "attribution": {
+            "type": "string",
+            "title": "Attribution"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "timeline_id",
+          "revision",
+          "data_label",
+          "series",
+          "sources",
+          "attribution"
+        ],
+        "title": "RevealResponse"
+      },
+      "RunResponse": {
+        "properties": {
+          "contract_version": {
+            "type": "string",
+            "const": "1",
+            "title": "Contract Version"
+          },
+          "data_label": {
+            "type": "string",
+            "title": "Data Label"
+          },
+          "timeline_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Timeline Id"
+          },
+          "run_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Run Id"
+          },
+          "dataset_version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Dataset Version"
+          },
+          "model_version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model Version"
+          },
+          "corpus_version": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Corpus Version"
+          },
+          "request_id": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Request Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0.0,
+            "title": "Revision"
+          },
+          "parent_revision": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0.0
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Parent Revision"
+          },
+          "changed_from": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Changed From"
+          },
+          "replace_through": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Replace Through"
+          },
+          "series_mode": {
+            "type": "string",
+            "enum": [
+              "full",
+              "suffix"
+            ],
+            "title": "Series Mode"
+          },
+          "evidence_cutoff": {
+            "anyOf": [
+              {
+                "type": "string",
+                "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Evidence Cutoff"
+          },
+          "prompts": {
+            "items": {
+              "$ref": "#/components/schemas/Prompt"
+            },
+            "type": "array",
+            "title": "Prompts"
+          },
+          "series": {
+            "$ref": "#/components/schemas/Series"
+          },
+          "panels": {
+            "additionalProperties": {
+              "$ref": "#/components/schemas/Panel"
+            },
+            "type": "object",
+            "title": "Panels"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "contract_version",
+          "data_label",
+          "timeline_id",
+          "run_id",
+          "dataset_version",
+          "model_version",
+          "corpus_version",
+          "request_id",
+          "revision",
+          "parent_revision",
+          "changed_from",
+          "replace_through",
+          "series_mode",
+          "evidence_cutoff",
+          "prompts",
+          "series",
+          "panels"
+        ],
+        "title": "RunResponse"
+      },
+      "Series": {
+        "properties": {
+          "target_id": {
+            "type": "string",
+            "title": "Target Id"
+          },
+          "base_date": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "title": "Base Date"
+          },
+          "base_value": {
+            "type": "number",
+            "exclusiveMinimum": 0.0,
+            "title": "Base Value"
+          },
+          "unit": {
+            "type": "string",
+            "const": "index",
+            "title": "Unit"
+          },
+          "frequency": {
+            "type": "string",
+            "const": "trading_session",
+            "title": "Frequency"
+          },
+          "points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array",
+            "title": "Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "target_id",
+          "base_date",
+          "base_value",
+          "unit",
+          "frequency",
+          "points"
+        ],
+        "title": "Series"
+      },
+      "Viewport": {
+        "properties": {
+          "start_year": {
+            "type": "integer",
+            "maximum": 9999.0,
+            "minimum": 1.0,
+            "title": "Start Year"
+          },
+          "end_year": {
+            "type": "integer",
+            "maximum": 9999.0,
+            "minimum": 1.0,
+            "title": "End Year"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "start_year",
+          "end_year"
+        ],
+        "title": "Viewport"
+      }
+    }
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "status": "ready",
+  "draft_id": "draft-2",
+  "timeline_id": "fixture-1",
+  "expected_revision": 1,
+  "mode": "add",
+  "selected_prompt_id": null,
+  "text": "July 15: add 0.1 percentage points to preceding reading",
+  "expires_at": "2026-11-07T22:05:00+00:00",
+  "instruction": {
+    "date_precision": "day",
+    "requested_start": "2025-07-15",
+    "requested_end": null,
+    "effective_start": "2025-07-15",
+    "effective_end": null,
+    "effective_at": "2025-07-15T08:30:00-04:00",
+    "timezone": "America/New_York",
+    "scope": "release",
+    "release_dates": [
+      "2025-07-15"
+    ],
+    "operation": "add_pp",
+    "value": 0.1,
+    "unit": "percentage_points",
+    "reference": "preceding"
+  },
+  "warnings": [
+    "Synthetic example — not market data or a real forecast"
+  ]
+}

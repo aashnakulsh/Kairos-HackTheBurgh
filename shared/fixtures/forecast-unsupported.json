@@ -1,0 +1,9 @@
+{
+  "status": "unsupported",
+  "reason": "Insufficient coverage",
+  "engine": "baseline",
+  "model_version": "fixture-v1",
+  "support_count": 0,
+  "points": [],
+  "assumptions": []
+}

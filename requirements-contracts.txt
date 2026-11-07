@@ -1,0 +1,6 @@
+# Fixture audit/server only. Production model dependencies are intentionally absent.
+pydantic==2.13.4
+fastapi==0.141.1
+httpx==0.28.1
+jsonschema==4.25.0
+uvicorn==0.48.0

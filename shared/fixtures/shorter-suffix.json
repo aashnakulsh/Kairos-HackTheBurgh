@@ -1,0 +1,73 @@
+{
+  "contract_version": "1",
+  "data_label": "Synthetic example — not market data or a real forecast",
+  "timeline_id": "fixture-1",
+  "run_id": "fixture-1-run-2",
+  "dataset_version": "synthetic-v1",
+  "model_version": "fixture-v1",
+  "corpus_version": "empty-v1",
+  "request_id": "short-example",
+  "revision": 2,
+  "parent_revision": 1,
+  "changed_from": "2025-06-11",
+  "replace_through": "2025-06-17",
+  "series_mode": "suffix",
+  "evidence_cutoff": "2025-06-11T12:29:59Z",
+  "prompts": [
+    {
+      "date_precision": "day",
+      "requested_start": "2025-06-11",
+      "requested_end": null,
+      "effective_start": "2025-06-11",
+      "effective_end": null,
+      "effective_at": "2025-06-11T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-06-11"
+      ],
+      "operation": "set",
+      "value": 0.4,
+      "unit": "percent",
+      "reference": null,
+      "id": "p1",
+      "display_number": 1,
+      "creation_order": 1,
+      "text": "Set June 11 CPI to 0.4%",
+      "evidence_ids": [],
+      "resolved_value": 0.4,
+      "status": "supported"
+    }
+  ],
+  "panels": {
+    "p1": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.4%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    }
+  },
+  "series": {
+    "target_id": "SPY",
+    "base_date": "2025-06-10",
+    "base_value": 100,
+    "unit": "index",
+    "frequency": "trading_session",
+    "points": [
+      {
+        "date": "2025-06-11",
+        "kind": "simulated",
+        "value": 100.4,
+        "q10": 99.4,
+        "q90": 101.4,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      }
+    ]
+  }
+}

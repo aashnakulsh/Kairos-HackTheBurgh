@@ -1,0 +1,34 @@
+{
+  "contract_version": "1",
+  "mode": "fixture",
+  "data_label": "Synthetic example — not market data or a real forecast",
+  "targets": [
+    "SPY"
+  ],
+  "unit": "index",
+  "frequency": "trading_session",
+  "default_viewport": {
+    "start_year": 1980,
+    "end_year": 2026
+  },
+  "coverage": {
+    "first_session": "2025-06-10",
+    "last_session": "2025-08-18",
+    "gaps": []
+  },
+  "supported_event_families": [
+    "cpi_release_presets"
+  ],
+  "default_horizon_sessions": 5,
+  "max_horizon_sessions": 65,
+  "max_prompts": 3,
+  "evidence_available": false,
+  "display_rights": "Synthetic fixture only; no licensed market feed loaded",
+  "fixture_presets": [
+    "Set June 11 CPI to 0.4%",
+    "Set June 11 CPI to 0.2%",
+    "July 15: add 0.1 percentage points to preceding reading",
+    "August 12: keep July simulated reading",
+    "Set July 15 CPI to 0.2%"
+  ]
+}

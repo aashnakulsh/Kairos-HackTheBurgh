@@ -1,0 +1,8 @@
+{
+  "status": "conflict",
+  "code": "stale_revision",
+  "reason": "Restore before reapplying",
+  "choices": [],
+  "current_revision": 4,
+  "retryable": false
+}

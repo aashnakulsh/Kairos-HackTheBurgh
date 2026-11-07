@@ -1,0 +1,439 @@
+{
+  "timeline_id": "fixture-1",
+  "revision": 4,
+  "data_label": "Synthetic example — not market data or a real forecast",
+  "series": {
+    "target_id": "SPY",
+    "base_date": "2025-06-10",
+    "base_value": 100,
+    "unit": "index",
+    "frequency": "trading_session",
+    "points": [
+      {
+        "date": "2025-06-11",
+        "kind": "observed",
+        "value": 100.05,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-12",
+        "kind": "observed",
+        "value": 100.1,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-13",
+        "kind": "observed",
+        "value": 100.15,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-16",
+        "kind": "observed",
+        "value": 100.2,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-17",
+        "kind": "observed",
+        "value": 100.25,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-18",
+        "kind": "observed",
+        "value": 100.3,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-20",
+        "kind": "observed",
+        "value": 100.35,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-23",
+        "kind": "observed",
+        "value": 100.4,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-24",
+        "kind": "observed",
+        "value": 100.45,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-25",
+        "kind": "observed",
+        "value": 100.5,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-26",
+        "kind": "observed",
+        "value": 100.55,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-27",
+        "kind": "observed",
+        "value": 100.6,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-06-30",
+        "kind": "observed",
+        "value": 100.65,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-01",
+        "kind": "observed",
+        "value": 100.7,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-02",
+        "kind": "observed",
+        "value": 100.75,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-03",
+        "kind": "observed",
+        "value": 100.8,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-07",
+        "kind": "observed",
+        "value": 100.85,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-08",
+        "kind": "observed",
+        "value": 100.9,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-09",
+        "kind": "observed",
+        "value": 100.95,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-10",
+        "kind": "observed",
+        "value": 101.0,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-11",
+        "kind": "observed",
+        "value": 101.05,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-14",
+        "kind": "observed",
+        "value": 101.1,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-15",
+        "kind": "observed",
+        "value": 101.15,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-16",
+        "kind": "observed",
+        "value": 101.2,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-17",
+        "kind": "observed",
+        "value": 101.25,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-18",
+        "kind": "observed",
+        "value": 101.3,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-21",
+        "kind": "observed",
+        "value": 101.35,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-22",
+        "kind": "observed",
+        "value": 101.4,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-23",
+        "kind": "observed",
+        "value": 101.45,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-24",
+        "kind": "observed",
+        "value": 101.5,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-25",
+        "kind": "observed",
+        "value": 101.55,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-28",
+        "kind": "observed",
+        "value": 101.6,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-29",
+        "kind": "observed",
+        "value": 101.65,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-30",
+        "kind": "observed",
+        "value": 101.7,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-07-31",
+        "kind": "observed",
+        "value": 101.75,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-01",
+        "kind": "observed",
+        "value": 101.8,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-04",
+        "kind": "observed",
+        "value": 101.85,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-05",
+        "kind": "observed",
+        "value": 101.9,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-06",
+        "kind": "observed",
+        "value": 101.95,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-07",
+        "kind": "observed",
+        "value": 102.0,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-08",
+        "kind": "observed",
+        "value": 102.05,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-11",
+        "kind": "observed",
+        "value": 102.1,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-12",
+        "kind": "observed",
+        "value": 102.15,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-13",
+        "kind": "observed",
+        "value": 102.2,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-14",
+        "kind": "observed",
+        "value": 102.25,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-15",
+        "kind": "observed",
+        "value": 102.3,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      },
+      {
+        "date": "2025-08-18",
+        "kind": "observed",
+        "value": 102.35,
+        "q10": null,
+        "q90": null,
+        "engine": null,
+        "segment_id": null
+      }
+    ]
+  },
+  "sources": [],
+  "attribution": "Synthetic reveal fixture; no actual market observations"
+}

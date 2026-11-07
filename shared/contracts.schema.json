@@ -1,0 +1,1749 @@
+{
+  "$defs": {
+    "Capabilities": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "fixture",
+            "live"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "data_label": {
+          "title": "Data Label",
+          "type": "string"
+        },
+        "targets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Targets",
+          "type": "array"
+        },
+        "unit": {
+          "const": "index",
+          "title": "Unit",
+          "type": "string"
+        },
+        "frequency": {
+          "const": "trading_session",
+          "title": "Frequency",
+          "type": "string"
+        },
+        "default_viewport": {
+          "$ref": "#/$defs/Viewport"
+        },
+        "coverage": {
+          "$ref": "#/$defs/Coverage"
+        },
+        "supported_event_families": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Supported Event Families",
+          "type": "array"
+        },
+        "default_horizon_sessions": {
+          "minimum": 1,
+          "title": "Default Horizon Sessions",
+          "type": "integer"
+        },
+        "max_horizon_sessions": {
+          "minimum": 1,
+          "title": "Max Horizon Sessions",
+          "type": "integer"
+        },
+        "max_prompts": {
+          "minimum": 1,
+          "title": "Max Prompts",
+          "type": "integer"
+        },
+        "evidence_available": {
+          "title": "Evidence Available",
+          "type": "boolean"
+        },
+        "display_rights": {
+          "title": "Display Rights",
+          "type": "string"
+        },
+        "fixture_presets": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Fixture Presets",
+          "type": "array"
+        }
+      },
+      "required": [
+        "contract_version",
+        "mode",
+        "data_label",
+        "targets",
+        "unit",
+        "frequency",
+        "default_viewport",
+        "coverage",
+        "supported_event_families",
+        "default_horizon_sessions",
+        "max_horizon_sessions",
+        "max_prompts",
+        "evidence_available",
+        "display_rights",
+        "fixture_presets"
+      ],
+      "title": "Capabilities",
+      "type": "object"
+    },
+    "CommitRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "draft_id": {
+          "minLength": 1,
+          "title": "Draft Id",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "draft_id",
+        "expected_revision",
+        "request_id"
+      ],
+      "title": "CommitRequest",
+      "type": "object"
+    },
+    "Coverage": {
+      "additionalProperties": false,
+      "properties": {
+        "first_session": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "First Session",
+          "type": "string"
+        },
+        "last_session": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Last Session",
+          "type": "string"
+        },
+        "gaps": {
+          "items": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "title": "Gaps",
+          "type": "array"
+        }
+      },
+      "required": [
+        "first_session",
+        "last_session",
+        "gaps"
+      ],
+      "title": "Coverage",
+      "type": "object"
+    },
+    "CreateTimelineRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "const": "SPY",
+          "title": "Target Id",
+          "type": "string"
+        },
+        "request_id": {
+          "minLength": 1,
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "target_id",
+        "request_id"
+      ],
+      "title": "CreateTimelineRequest",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "pattern": "^https?://",
+          "title": "Url",
+          "type": "string"
+        },
+        "publication_time": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+          "title": "Publication Time",
+          "type": "string"
+        },
+        "passage_locator": {
+          "title": "Passage Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url",
+        "publication_time",
+        "passage_locator"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "ForecastRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "segment_id": {
+          "minLength": 1,
+          "title": "Segment Id",
+          "type": "string"
+        },
+        "base_date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Base Date",
+          "type": "string"
+        },
+        "base_value": {
+          "exclusiveMinimum": 0,
+          "title": "Base Value",
+          "type": "number"
+        },
+        "evidence_cutoff": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+          "title": "Evidence Cutoff",
+          "type": "string"
+        },
+        "dataset_version": {
+          "minLength": 1,
+          "title": "Dataset Version",
+          "type": "string"
+        },
+        "model_version": {
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "history": {
+          "items": {
+            "$ref": "#/$defs/HistoryRow"
+          },
+          "minItems": 1,
+          "title": "History",
+          "type": "array"
+        },
+        "future": {
+          "items": {
+            "$ref": "#/$defs/FutureRow"
+          },
+          "maxItems": 65,
+          "minItems": 1,
+          "title": "Future",
+          "type": "array"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target_id",
+        "segment_id",
+        "base_date",
+        "base_value",
+        "evidence_cutoff",
+        "dataset_version",
+        "model_version",
+        "history",
+        "future",
+        "assumptions"
+      ],
+      "title": "ForecastRequest",
+      "type": "object"
+    },
+    "ForecastResult": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "supported",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "model_version": {
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "support_count": {
+          "minimum": 0,
+          "title": "Support Count",
+          "type": "integer"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "title": "Points",
+          "type": "array"
+        },
+        "assumptions": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Assumptions",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "engine",
+        "model_version",
+        "support_count",
+        "points",
+        "assumptions"
+      ],
+      "title": "ForecastResult",
+      "type": "object"
+    },
+    "FutureRow": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "cpi_percent": {
+          "title": "Cpi Percent",
+          "type": "number"
+        },
+        "release_indicator": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Release Indicator",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "date",
+        "cpi_percent",
+        "release_indicator"
+      ],
+      "title": "FutureRow",
+      "type": "object"
+    },
+    "HistoryRow": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "level": {
+          "title": "Level",
+          "type": "number"
+        },
+        "kind": {
+          "enum": [
+            "observed",
+            "simulated"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "available_at": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Available At"
+        },
+        "cpi_percent": {
+          "title": "Cpi Percent",
+          "type": "number"
+        },
+        "release_indicator": {
+          "enum": [
+            0,
+            1
+          ],
+          "title": "Release Indicator",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "date",
+        "level",
+        "kind",
+        "available_at",
+        "cpi_percent",
+        "release_indicator"
+      ],
+      "title": "HistoryRow",
+      "type": "object"
+    },
+    "Hypothesis": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        },
+        "user_assumption": {
+          "title": "User Assumption",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "text",
+        "source_ids",
+        "user_assumption"
+      ],
+      "title": "Hypothesis",
+      "type": "object"
+    },
+    "Impact": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "emoji": {
+          "title": "Emoji",
+          "type": "string"
+        },
+        "exposure": {
+          "enum": [
+            "direct",
+            "indirect"
+          ],
+          "title": "Exposure",
+          "type": "string"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "positive",
+                "negative",
+                "neutral"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Direction"
+        },
+        "metric_kind": {
+          "enum": [
+            "proxy_change",
+            "index_contribution",
+            "qualitative"
+          ],
+          "title": "Metric Kind",
+          "type": "string"
+        },
+        "magnitude": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Magnitude"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "percent",
+                "percentage_points"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "comparator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Comparator"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "emoji",
+        "exposure",
+        "direction",
+        "metric_kind",
+        "magnitude",
+        "unit",
+        "comparator",
+        "horizon",
+        "method",
+        "source_ids"
+      ],
+      "title": "Impact",
+      "type": "object"
+    },
+    "Instruction": {
+      "additionalProperties": false,
+      "description": "Backend-validated instruction; relative expressions stay relative.",
+      "properties": {
+        "date_precision": {
+          "enum": [
+            "day",
+            "year",
+            "interval"
+          ],
+          "title": "Date Precision",
+          "type": "string"
+        },
+        "requested_start": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Requested Start",
+          "type": "string"
+        },
+        "requested_end": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested End"
+        },
+        "effective_start": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Effective Start",
+          "type": "string"
+        },
+        "effective_end": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Effective End"
+        },
+        "effective_at": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+          "title": "Effective At",
+          "type": "string"
+        },
+        "timezone": {
+          "const": "America/New_York",
+          "title": "Timezone",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "release",
+            "interval",
+            "recurring"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "release_dates": {
+          "items": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "title": "Release Dates",
+          "type": "array"
+        },
+        "operation": {
+          "enum": [
+            "set",
+            "add_pp",
+            "carry"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "enum": [
+            "percent",
+            "percentage_points"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reference"
+        }
+      },
+      "required": [
+        "date_precision",
+        "requested_start",
+        "requested_end",
+        "effective_start",
+        "effective_end",
+        "effective_at",
+        "timezone",
+        "scope",
+        "release_dates",
+        "operation",
+        "value",
+        "unit",
+        "reference"
+      ],
+      "title": "Instruction",
+      "type": "object"
+    },
+    "InterpretRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "maxLength": 10000,
+          "minLength": 1,
+          "title": "Text",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "add",
+            "replace"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "selected_prompt_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Selected Prompt Id"
+        },
+        "playhead": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Playhead"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "text",
+        "mode",
+        "expected_revision"
+      ],
+      "title": "InterpretRequest",
+      "type": "object"
+    },
+    "Panel": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "hypotheses": {
+          "items": {
+            "$ref": "#/$defs/Hypothesis"
+          },
+          "title": "Hypotheses",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "impacts": {
+          "items": {
+            "$ref": "#/$defs/Impact"
+          },
+          "title": "Impacts",
+          "type": "array"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "string"
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Comparison"
+        },
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "support_count": {
+          "minimum": 0,
+          "title": "Support Count",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary",
+        "hypotheses",
+        "evidence",
+        "impacts",
+        "horizon",
+        "comparison",
+        "engine",
+        "support_count",
+        "status"
+      ],
+      "title": "Panel",
+      "type": "object"
+    },
+    "ParsedScenario": {
+      "additionalProperties": false,
+      "description": "Same required nullable fields from either provider; server validates meaning.",
+      "properties": {
+        "status": {
+          "enum": [
+            "parsed",
+            "needs_clarification",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reason"
+        },
+        "choices": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Choices",
+          "type": "array"
+        },
+        "date_precision": {
+          "anyOf": [
+            {
+              "enum": [
+                "day",
+                "year",
+                "interval"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Date Precision"
+        },
+        "requested_start": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested Start"
+        },
+        "requested_end": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested End"
+        },
+        "scope": {
+          "anyOf": [
+            {
+              "enum": [
+                "release",
+                "interval",
+                "recurring"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Scope"
+        },
+        "release_dates": {
+          "items": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "title": "Release Dates",
+          "type": "array"
+        },
+        "operation": {
+          "anyOf": [
+            {
+              "enum": [
+                "set",
+                "add_pp",
+                "carry"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Operation"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "percent",
+                "percentage_points"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reference"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "choices",
+        "date_precision",
+        "requested_start",
+        "requested_end",
+        "scope",
+        "release_dates",
+        "operation",
+        "value",
+        "unit",
+        "reference"
+      ],
+      "title": "ParsedScenario",
+      "type": "object"
+    },
+    "Point": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Date",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "observed",
+            "simulated",
+            "gap"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "q10": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Q10"
+        },
+        "q90": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Q90"
+        },
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Engine"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Segment Id"
+        }
+      },
+      "required": [
+        "date",
+        "kind",
+        "value",
+        "q10",
+        "q90",
+        "engine",
+        "segment_id"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Problem": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "needs_clarification",
+            "unsupported",
+            "conflict",
+            "invalid",
+            "unavailable",
+            "not_found",
+            "draft_expired"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "choices": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Choices",
+          "type": "array"
+        },
+        "current_revision": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Current Revision"
+        },
+        "retryable": {
+          "title": "Retryable",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "status",
+        "code",
+        "reason",
+        "choices",
+        "current_revision",
+        "retryable"
+      ],
+      "title": "Problem",
+      "type": "object"
+    },
+    "Prompt": {
+      "additionalProperties": false,
+      "properties": {
+        "date_precision": {
+          "enum": [
+            "day",
+            "year",
+            "interval"
+          ],
+          "title": "Date Precision",
+          "type": "string"
+        },
+        "requested_start": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Requested Start",
+          "type": "string"
+        },
+        "requested_end": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested End"
+        },
+        "effective_start": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Effective Start",
+          "type": "string"
+        },
+        "effective_end": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Effective End"
+        },
+        "effective_at": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+          "title": "Effective At",
+          "type": "string"
+        },
+        "timezone": {
+          "const": "America/New_York",
+          "title": "Timezone",
+          "type": "string"
+        },
+        "scope": {
+          "enum": [
+            "release",
+            "interval",
+            "recurring"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "release_dates": {
+          "items": {
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "type": "string"
+          },
+          "title": "Release Dates",
+          "type": "array"
+        },
+        "operation": {
+          "enum": [
+            "set",
+            "add_pp",
+            "carry"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "enum": [
+            "percent",
+            "percentage_points"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reference"
+        },
+        "id": {
+          "minLength": 1,
+          "title": "Id",
+          "type": "string"
+        },
+        "display_number": {
+          "minimum": 1,
+          "title": "Display Number",
+          "type": "integer"
+        },
+        "creation_order": {
+          "minimum": 1,
+          "title": "Creation Order",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "evidence_ids": {
+          "items": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "title": "Evidence Ids",
+          "type": "array"
+        },
+        "resolved_value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Resolved Value"
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "date_precision",
+        "requested_start",
+        "requested_end",
+        "effective_start",
+        "effective_end",
+        "effective_at",
+        "timezone",
+        "scope",
+        "release_dates",
+        "operation",
+        "value",
+        "unit",
+        "reference",
+        "id",
+        "display_number",
+        "creation_order",
+        "text",
+        "evidence_ids",
+        "resolved_value",
+        "status"
+      ],
+      "title": "Prompt",
+      "type": "object"
+    },
+    "ReadyDraft": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "const": "ready",
+          "title": "Status",
+          "type": "string"
+        },
+        "draft_id": {
+          "minLength": 1,
+          "title": "Draft Id",
+          "type": "string"
+        },
+        "timeline_id": {
+          "minLength": 1,
+          "title": "Timeline Id",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "mode": {
+          "enum": [
+            "add",
+            "replace"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "selected_prompt_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Selected Prompt Id"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "expires_at": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+          "title": "Expires At",
+          "type": "string"
+        },
+        "instruction": {
+          "$ref": "#/$defs/Instruction"
+        },
+        "warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Warnings",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "draft_id",
+        "timeline_id",
+        "expected_revision",
+        "mode",
+        "selected_prompt_id",
+        "text",
+        "expires_at",
+        "instruction",
+        "warnings"
+      ],
+      "title": "ReadyDraft",
+      "type": "object"
+    },
+    "RevealResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "timeline_id": {
+          "minLength": 1,
+          "title": "Timeline Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "data_label": {
+          "title": "Data Label",
+          "type": "string"
+        },
+        "series": {
+          "$ref": "#/$defs/Series"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "attribution": {
+          "title": "Attribution",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timeline_id",
+        "revision",
+        "data_label",
+        "series",
+        "sources",
+        "attribution"
+      ],
+      "title": "RevealResponse",
+      "type": "object"
+    },
+    "RunResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "data_label": {
+          "title": "Data Label",
+          "type": "string"
+        },
+        "timeline_id": {
+          "minLength": 1,
+          "title": "Timeline Id",
+          "type": "string"
+        },
+        "run_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Run Id"
+        },
+        "dataset_version": {
+          "minLength": 1,
+          "title": "Dataset Version",
+          "type": "string"
+        },
+        "model_version": {
+          "minLength": 1,
+          "title": "Model Version",
+          "type": "string"
+        },
+        "corpus_version": {
+          "minLength": 1,
+          "title": "Corpus Version",
+          "type": "string"
+        },
+        "request_id": {
+          "anyOf": [
+            {
+              "minLength": 1,
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Request Id"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "parent_revision": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Revision"
+        },
+        "changed_from": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Changed From"
+        },
+        "replace_through": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Replace Through"
+        },
+        "series_mode": {
+          "enum": [
+            "full",
+            "suffix"
+          ],
+          "title": "Series Mode",
+          "type": "string"
+        },
+        "evidence_cutoff": {
+          "anyOf": [
+            {
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}T.*(Z|[+-]\\d{2}:\\d{2})$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Evidence Cutoff"
+        },
+        "prompts": {
+          "items": {
+            "$ref": "#/$defs/Prompt"
+          },
+          "title": "Prompts",
+          "type": "array"
+        },
+        "series": {
+          "$ref": "#/$defs/Series"
+        },
+        "panels": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Panel"
+          },
+          "title": "Panels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contract_version",
+        "data_label",
+        "timeline_id",
+        "run_id",
+        "dataset_version",
+        "model_version",
+        "corpus_version",
+        "request_id",
+        "revision",
+        "parent_revision",
+        "changed_from",
+        "replace_through",
+        "series_mode",
+        "evidence_cutoff",
+        "prompts",
+        "series",
+        "panels"
+      ],
+      "title": "RunResponse",
+      "type": "object"
+    },
+    "Series": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "base_date": {
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+          "title": "Base Date",
+          "type": "string"
+        },
+        "base_value": {
+          "exclusiveMinimum": 0,
+          "title": "Base Value",
+          "type": "number"
+        },
+        "unit": {
+          "const": "index",
+          "title": "Unit",
+          "type": "string"
+        },
+        "frequency": {
+          "const": "trading_session",
+          "title": "Frequency",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target_id",
+        "base_date",
+        "base_value",
+        "unit",
+        "frequency",
+        "points"
+      ],
+      "title": "Series",
+      "type": "object"
+    },
+    "Viewport": {
+      "additionalProperties": false,
+      "properties": {
+        "start_year": {
+          "maximum": 9999,
+          "minimum": 1,
+          "title": "Start Year",
+          "type": "integer"
+        },
+        "end_year": {
+          "maximum": 9999,
+          "minimum": 1,
+          "title": "End Year",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "start_year",
+        "end_year"
+      ],
+      "title": "Viewport",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Export root, not an HTTP payload.",
+  "properties": {
+    "create_request": {
+      "$ref": "#/$defs/CreateTimelineRequest"
+    },
+    "interpret_request": {
+      "$ref": "#/$defs/InterpretRequest"
+    },
+    "commit_request": {
+      "$ref": "#/$defs/CommitRequest"
+    },
+    "draft": {
+      "$ref": "#/$defs/ReadyDraft"
+    },
+    "run": {
+      "$ref": "#/$defs/RunResponse"
+    },
+    "problem": {
+      "$ref": "#/$defs/Problem"
+    },
+    "capabilities": {
+      "$ref": "#/$defs/Capabilities"
+    },
+    "reveal": {
+      "$ref": "#/$defs/RevealResponse"
+    },
+    "parser": {
+      "$ref": "#/$defs/ParsedScenario"
+    },
+    "forecast_request": {
+      "$ref": "#/$defs/ForecastRequest"
+    },
+    "forecast_result": {
+      "$ref": "#/$defs/ForecastResult"
+    }
+  },
+  "required": [
+    "create_request",
+    "interpret_request",
+    "commit_request",
+    "draft",
+    "run",
+    "problem",
+    "capabilities",
+    "reveal",
+    "parser",
+    "forecast_request",
+    "forecast_result"
+  ],
+  "title": "ContractBundle",
+  "type": "object"
+}
