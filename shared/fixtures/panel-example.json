@@ -1,0 +1,56 @@
+{
+  "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.4%.",
+  "hypotheses": [
+    {
+      "text": "Possible mechanism, synthetic example only",
+      "source_ids": [],
+      "user_assumption": true
+    }
+  ],
+  "evidence": [
+    {
+      "id": "synthetic-source",
+      "title": "Synthetic exposure fixture (not evidence)",
+      "url": "https://example.com/synthetic",
+      "publication_time": "2025-06-10T12:00:00Z",
+      "passage_locator": "Example only"
+    }
+  ],
+  "impacts": [
+    {
+      "name": "Airlines (synthetic)",
+      "emoji": "✈",
+      "exposure": "indirect",
+      "direction": null,
+      "metric_kind": "qualitative",
+      "magnitude": null,
+      "unit": null,
+      "comparator": null,
+      "horizon": "5 sessions",
+      "method": "Synthetic display example",
+      "source_ids": [
+        "synthetic-source"
+      ]
+    },
+    {
+      "name": "Example sector proxy",
+      "emoji": "✈",
+      "exposure": "indirect",
+      "direction": "positive",
+      "metric_kind": "proxy_change",
+      "magnitude": 1.2,
+      "unit": "percent",
+      "comparator": "Own starting proxy level",
+      "horizon": "5 sessions",
+      "method": "Synthetic display example",
+      "source_ids": [
+        "synthetic-source"
+      ]
+    }
+  ],
+  "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+  "comparison": null,
+  "engine": "synthetic",
+  "support_count": 0,
+  "status": "supported"
+}

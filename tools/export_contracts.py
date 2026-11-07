@@ -6,6 +6,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 from api.contracts import ContractBundle
+from api.fixture_app import create_app
 
 
 def ts(node):
@@ -35,6 +36,7 @@ for name, definition in schema["$defs"].items():
         lines.append(f"  {key}{optional}: {ts(node)};")
     lines.append("}\n")
 outputs = {ROOT / "shared/contracts.schema.json": schema_text,
+           ROOT / "shared/openapi.json": json.dumps(create_app().openapi(), indent=2) + "\n",
            ROOT / "web/src/generated/contracts.ts": "\n".join(lines)}
 for path, content in outputs.items():
     if "--check" in sys.argv:

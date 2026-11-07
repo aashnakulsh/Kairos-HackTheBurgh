@@ -14,4 +14,7 @@ lockfile; do not create separate frontend applications.
   modifying the shared package file or lockfile.
 
 These are proposed collaboration boundaries, not access restrictions. There is no
-runnable frontend yet. Fixture mode must visibly say synthetic example.
+runnable frontend UI yet. `src/api/client.ts` now supplies typed calls and
+`src/api/applyRun.ts` applies full/suffix cache updates. Use those in the workspace.
+Start the local HTTP fixture API using the root README. Fixture mode must visibly say
+synthetic example. Node tests exercise the client/cache without React dependencies.

@@ -1,0 +1,30 @@
+{
+  "status": "ready",
+  "draft_id": "draft-1",
+  "timeline_id": "fixture-1",
+  "expected_revision": 0,
+  "mode": "add",
+  "selected_prompt_id": null,
+  "text": "Set June 11 CPI to 0.4%",
+  "expires_at": "2026-11-07T22:05:00+00:00",
+  "instruction": {
+    "date_precision": "day",
+    "requested_start": "2025-06-11",
+    "requested_end": null,
+    "effective_start": "2025-06-11",
+    "effective_end": null,
+    "effective_at": "2025-06-11T08:30:00-04:00",
+    "timezone": "America/New_York",
+    "scope": "release",
+    "release_dates": [
+      "2025-06-11"
+    ],
+    "operation": "set",
+    "value": 0.4,
+    "unit": "percent",
+    "reference": null
+  },
+  "warnings": [
+    "Synthetic example — not market data or a real forecast"
+  ]
+}

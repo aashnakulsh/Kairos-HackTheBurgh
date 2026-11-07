@@ -1,13 +1,20 @@
 {
   "contract_version": "1",
-  "data_label": "Synthetic example \u2014 not market data",
-  "timeline_id": "example",
+  "data_label": "Synthetic example — not market data or a real forecast",
+  "timeline_id": "fixture-1",
+  "run_id": null,
+  "dataset_version": "synthetic-v1",
+  "model_version": "fixture-v1",
+  "corpus_version": "empty-v1",
+  "request_id": null,
   "revision": 0,
   "parent_revision": null,
   "changed_from": null,
   "replace_through": null,
   "series_mode": "full",
+  "evidence_cutoff": null,
   "prompts": [],
+  "panels": {},
   "series": {
     "target_id": "SPY",
     "base_date": "2025-06-10",
@@ -15,6 +22,5 @@
     "unit": "index",
     "frequency": "trading_session",
     "points": []
-  },
-  "panels": {}
+  }
 }

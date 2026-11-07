@@ -96,6 +96,14 @@ At each intervention use only the latest eligible historical or simulated state,
 
 ## 5. Frontend–backend wire contract
 
+The executable handoff and conflict resolutions are in
+[frontend-backend-contract.md](frontend-backend-contract.md). Generate OpenAPI, JSON
+Schema and TypeScript from `api/contracts.py`. Use the fixture server only for synthetic
+development; it does not establish live model or database readiness. A new read-only
+`GET /api/timelines/{id}/revisions/{revision}` retrieves the preserved earlier snapshot.
+Moving the first fork earlier must tighten the evidence cutoff if necessary; moving it
+later or replaying downstream never advances that cutoff.
+
 Type and validate the canonical schemas once in FastAPI/Pydantic. Chohan and Orion consume matching TypeScript types or generated OpenAPI types. Dates crossing the API are ISO 8601; session labels are US exchange dates. A numeric value of `0.4` with `unit="percent"` means 0.4%. A relative instruction uses `unit="percentage_points"`. Keep raw precision in the backend and round only for display.
 
 | Endpoint | Request / response |

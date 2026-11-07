@@ -1,0 +1,557 @@
+{
+  "contract_version": "1",
+  "data_label": "Synthetic example — not market data or a real forecast",
+  "timeline_id": "fixture-1",
+  "run_id": "fixture-1-run-4",
+  "dataset_version": "synthetic-v1",
+  "model_version": "fixture-v1",
+  "corpus_version": "empty-v1",
+  "request_id": "commit-004",
+  "revision": 4,
+  "parent_revision": 3,
+  "changed_from": "2025-06-11",
+  "replace_through": "2025-08-18",
+  "series_mode": "suffix",
+  "evidence_cutoff": "2025-06-11T12:29:59Z",
+  "prompts": [
+    {
+      "date_precision": "day",
+      "requested_start": "2025-06-11",
+      "requested_end": null,
+      "effective_start": "2025-06-11",
+      "effective_end": null,
+      "effective_at": "2025-06-11T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-06-11"
+      ],
+      "operation": "set",
+      "value": 0.2,
+      "unit": "percent",
+      "reference": null,
+      "id": "p1",
+      "display_number": 1,
+      "creation_order": 1,
+      "text": "Set June 11 CPI to 0.2%",
+      "evidence_ids": [],
+      "resolved_value": 0.2,
+      "status": "supported"
+    },
+    {
+      "date_precision": "day",
+      "requested_start": "2025-07-15",
+      "requested_end": null,
+      "effective_start": "2025-07-15",
+      "effective_end": null,
+      "effective_at": "2025-07-15T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-07-15"
+      ],
+      "operation": "add_pp",
+      "value": 0.1,
+      "unit": "percentage_points",
+      "reference": "preceding",
+      "id": "p2",
+      "display_number": 2,
+      "creation_order": 2,
+      "text": "July 15: add 0.1 percentage points to preceding reading",
+      "evidence_ids": [],
+      "resolved_value": 0.3,
+      "status": "supported"
+    },
+    {
+      "date_precision": "day",
+      "requested_start": "2025-08-12",
+      "requested_end": null,
+      "effective_start": "2025-08-12",
+      "effective_end": null,
+      "effective_at": "2025-08-12T08:30:00-04:00",
+      "timezone": "America/New_York",
+      "scope": "release",
+      "release_dates": [
+        "2025-08-12"
+      ],
+      "operation": "carry",
+      "value": null,
+      "unit": "percent",
+      "reference": "p2",
+      "id": "p3",
+      "display_number": 3,
+      "creation_order": 3,
+      "text": "August 12: keep July simulated reading",
+      "evidence_ids": [],
+      "resolved_value": 0.3,
+      "status": "supported"
+    }
+  ],
+  "panels": {
+    "p1": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.2%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    },
+    "p2": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.3%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    },
+    "p3": {
+      "summary": "Synthetic example — not market data or a real forecast. Resolved CPI assumption 0.3%.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "Five sessions after final prompt; earlier segments bridge to next prompt",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "supported"
+    }
+  },
+  "series": {
+    "target_id": "SPY",
+    "base_date": "2025-06-10",
+    "base_value": 100,
+    "unit": "index",
+    "frequency": "trading_session",
+    "points": [
+      {
+        "date": "2025-06-11",
+        "kind": "simulated",
+        "value": 100.2,
+        "q10": 99.2,
+        "q90": 101.2,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-12",
+        "kind": "simulated",
+        "value": 100.4,
+        "q10": 99.4,
+        "q90": 101.4,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-13",
+        "kind": "simulated",
+        "value": 100.6,
+        "q10": 99.6,
+        "q90": 101.6,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-16",
+        "kind": "simulated",
+        "value": 100.8,
+        "q10": 99.8,
+        "q90": 101.8,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-17",
+        "kind": "simulated",
+        "value": 101.0,
+        "q10": 100.0,
+        "q90": 102.0,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-18",
+        "kind": "simulated",
+        "value": 101.2,
+        "q10": 100.2,
+        "q90": 102.2,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-20",
+        "kind": "simulated",
+        "value": 101.4,
+        "q10": 100.4,
+        "q90": 102.4,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-23",
+        "kind": "simulated",
+        "value": 101.6,
+        "q10": 100.6,
+        "q90": 102.6,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-24",
+        "kind": "simulated",
+        "value": 101.8,
+        "q10": 100.8,
+        "q90": 102.8,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-25",
+        "kind": "simulated",
+        "value": 102.0,
+        "q10": 101.0,
+        "q90": 103.0,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-26",
+        "kind": "simulated",
+        "value": 102.2,
+        "q10": 101.2,
+        "q90": 103.2,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-27",
+        "kind": "simulated",
+        "value": 102.4,
+        "q10": 101.4,
+        "q90": 103.4,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-06-30",
+        "kind": "simulated",
+        "value": 102.6,
+        "q10": 101.6,
+        "q90": 103.6,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-01",
+        "kind": "simulated",
+        "value": 102.8,
+        "q10": 101.8,
+        "q90": 103.8,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-02",
+        "kind": "simulated",
+        "value": 103.0,
+        "q10": 102.0,
+        "q90": 104.0,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-03",
+        "kind": "simulated",
+        "value": 103.2,
+        "q10": 102.2,
+        "q90": 104.2,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-07",
+        "kind": "simulated",
+        "value": 103.4,
+        "q10": 102.4,
+        "q90": 104.4,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-08",
+        "kind": "simulated",
+        "value": 103.6,
+        "q10": 102.6,
+        "q90": 104.6,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-09",
+        "kind": "simulated",
+        "value": 103.8,
+        "q10": 102.8,
+        "q90": 104.8,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-10",
+        "kind": "simulated",
+        "value": 104.0,
+        "q10": 103.0,
+        "q90": 105.0,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-11",
+        "kind": "simulated",
+        "value": 104.2,
+        "q10": 103.2,
+        "q90": 105.2,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-14",
+        "kind": "simulated",
+        "value": 104.4,
+        "q10": 103.4,
+        "q90": 105.4,
+        "engine": "synthetic",
+        "segment_id": "p1"
+      },
+      {
+        "date": "2025-07-15",
+        "kind": "simulated",
+        "value": 104.7,
+        "q10": 103.7,
+        "q90": 105.7,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-16",
+        "kind": "simulated",
+        "value": 105.0,
+        "q10": 104.0,
+        "q90": 106.0,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-17",
+        "kind": "simulated",
+        "value": 105.3,
+        "q10": 104.3,
+        "q90": 106.3,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-18",
+        "kind": "simulated",
+        "value": 105.6,
+        "q10": 104.6,
+        "q90": 106.6,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-21",
+        "kind": "simulated",
+        "value": 105.9,
+        "q10": 104.9,
+        "q90": 106.9,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-22",
+        "kind": "simulated",
+        "value": 106.2,
+        "q10": 105.2,
+        "q90": 107.2,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-23",
+        "kind": "simulated",
+        "value": 106.5,
+        "q10": 105.5,
+        "q90": 107.5,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-24",
+        "kind": "simulated",
+        "value": 106.8,
+        "q10": 105.8,
+        "q90": 107.8,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-25",
+        "kind": "simulated",
+        "value": 107.1,
+        "q10": 106.1,
+        "q90": 108.1,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-28",
+        "kind": "simulated",
+        "value": 107.4,
+        "q10": 106.4,
+        "q90": 108.4,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-29",
+        "kind": "simulated",
+        "value": 107.7,
+        "q10": 106.7,
+        "q90": 108.7,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-30",
+        "kind": "simulated",
+        "value": 108.0,
+        "q10": 107.0,
+        "q90": 109.0,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-07-31",
+        "kind": "simulated",
+        "value": 108.3,
+        "q10": 107.3,
+        "q90": 109.3,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-01",
+        "kind": "simulated",
+        "value": 108.6,
+        "q10": 107.6,
+        "q90": 109.6,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-04",
+        "kind": "simulated",
+        "value": 108.9,
+        "q10": 107.9,
+        "q90": 109.9,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-05",
+        "kind": "simulated",
+        "value": 109.2,
+        "q10": 108.2,
+        "q90": 110.2,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-06",
+        "kind": "simulated",
+        "value": 109.5,
+        "q10": 108.5,
+        "q90": 110.5,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-07",
+        "kind": "simulated",
+        "value": 109.8,
+        "q10": 108.8,
+        "q90": 110.8,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-08",
+        "kind": "simulated",
+        "value": 110.1,
+        "q10": 109.1,
+        "q90": 111.1,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-11",
+        "kind": "simulated",
+        "value": 110.4,
+        "q10": 109.4,
+        "q90": 111.4,
+        "engine": "synthetic",
+        "segment_id": "p2"
+      },
+      {
+        "date": "2025-08-12",
+        "kind": "simulated",
+        "value": 110.7,
+        "q10": 109.7,
+        "q90": 111.7,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-13",
+        "kind": "simulated",
+        "value": 111.0,
+        "q10": 110.0,
+        "q90": 112.0,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-14",
+        "kind": "simulated",
+        "value": 111.3,
+        "q10": 110.3,
+        "q90": 112.3,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-15",
+        "kind": "simulated",
+        "value": 111.6,
+        "q10": 110.6,
+        "q90": 112.6,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      },
+      {
+        "date": "2025-08-18",
+        "kind": "simulated",
+        "value": 111.9,
+        "q10": 110.9,
+        "q90": 112.9,
+        "engine": "synthetic",
+        "segment_id": "p3"
+      }
+    ]
+  }
+}

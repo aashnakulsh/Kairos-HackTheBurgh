@@ -1,5 +1,8 @@
 {
   "status": "unsupported",
-  "reason": "Requested date is outside supported coverage.",
-  "choices": []
+  "code": "unsupported_event",
+  "reason": "No supported quantitative lever",
+  "choices": [],
+  "current_revision": 4,
+  "retryable": false
 }

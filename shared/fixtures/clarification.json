@@ -1,7 +1,10 @@
 {
   "status": "needs_clarification",
-  "reason": "Choose a release date.",
+  "code": "choose_release",
+  "reason": "Choose a CPI release",
   "choices": [
-    "2025-06-11"
-  ]
+    "Set June 11 CPI to 0.4%"
+  ],
+  "current_revision": 0,
+  "retryable": false
 }

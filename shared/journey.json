@@ -1,0 +1,79 @@
+[
+  {
+    "method": "GET",
+    "path": "/api/capabilities",
+    "request": null,
+    "response": "capabilities.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines",
+    "request": "create-request.json",
+    "response": "empty.json",
+    "http": 201
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/interpret",
+    "request": "first-run-interpret.json",
+    "response": "first-run-draft.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/commit",
+    "request": "first-run-commit.json",
+    "response": "first-run.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/interpret",
+    "request": "second-run-interpret.json",
+    "response": "second-run-draft.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/commit",
+    "request": "second-run-commit.json",
+    "response": "second-run.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/interpret",
+    "request": "third-run-interpret.json",
+    "response": "third-run-draft.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/commit",
+    "request": "third-run-commit.json",
+    "response": "third-run.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/interpret",
+    "request": "replace-first-interpret.json",
+    "response": "replace-first-draft.json",
+    "http": 200
+  },
+  {
+    "method": "POST",
+    "path": "/api/timelines/fixture-1/commit",
+    "request": "replace-first-commit.json",
+    "response": "replace-first.json",
+    "http": 200
+  },
+  {
+    "method": "GET",
+    "path": "/api/timelines/fixture-1/revisions/4/reveal",
+    "request": null,
+    "response": "reveal.json",
+    "http": 200
+  }
+]

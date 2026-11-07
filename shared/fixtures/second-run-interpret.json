@@ -1,0 +1,7 @@
+{
+  "text": "July 15: add 0.1 percentage points to preceding reading",
+  "mode": "add",
+  "expected_revision": 1,
+  "selected_prompt_id": null,
+  "playhead": null
+}

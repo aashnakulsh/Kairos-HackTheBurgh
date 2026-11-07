@@ -1,7 +1,8 @@
 # Start building together
 
-This foundation provides schemas, generated TypeScript and synthetic response files.
-It is not yet a runnable frontend/backend. It reduces interface drift; it cannot
+This foundation provides schemas, generated TypeScript, a local synthetic fixture API
+and response files. See frontend-backend-contract.md for startup and exact interfaces.
+It is not yet a live frontend/backend. It reduces interface drift; it cannot
 guarantee conflict-free merges. Do not wait for four finished branches to integrate.
 
 ## 1. Establish one shared starting point
@@ -12,9 +13,9 @@ Have Aashna review this foundation alongside architecture.md. Foundation task:
 Everyone then updates their own clean clone
 from main and creates a separate task branch. One editing agent per working folder.
 
-Agree contract changes with Aashna, especially the remaining capabilities, draft and
-reveal payloads. Add those to api/contracts.py and regenerate; never edit generated
-TypeScript independently. Agree the typed forecast segment adapter before wiring it.
+Agree contract changes with Aashna. Capabilities, draft, reveal and forecast schemas
+are now supplied in api/contracts.py; regenerate after editing and never edit generated
+TypeScript independently. Confirm the typed forecast adapter before wiring live models.
 
 ## 2. Start these tasks in parallel
 
@@ -52,7 +53,8 @@ python tools/export_contracts.py --check
 python tools/check_fixtures.py
 ```
 
-These check schema drift and fixture consistency, not a running application.
+These check schema drift and fixture consistency. The canonical handoff adds Python
+HTTP fixture tests and Node client/cache tests; they do not test the live application.
 Aashna adds these to CI with backend tests and frontend typecheck/build once scaffolded.
 
 First integration: browser -> FastAPI -> synthetic result -> chart. Merge this small
@@ -62,9 +64,8 @@ deterministic fixture path for UI development; never disguise it as model output
 
 Backend checks: stale revision, duplicate request, replacement stable IDs, atomic
 failure, restore, earlier/later date moves and unchanged prefix. Shared three-prompt
-acceptance: 0.4/0.5/0.5 becomes 0.2/0.3/0.3 after replacing the first input. The current
-fixtures only cover a single prompt and suffix behavior; add this full replay test
-when the coordinator exists.
+acceptance: 0.4/0.5/0.5 becomes 0.2/0.3/0.3 after replacing the first input. The fixture
+journey now tests this sequence, but the production coordinator must pass it too.
 
 Aditya checks session alignment, units, missing data, cutoff leakage, quantile ordering,
 unsupported ranges and chronological baseline evaluation. Frontend owners check empty,
