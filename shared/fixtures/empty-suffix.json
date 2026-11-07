@@ -1,0 +1,49 @@
+{
+  "contract_version": "1",
+  "data_label": "Synthetic example \u2014 not market data",
+  "timeline_id": "example",
+  "revision": 2,
+  "parent_revision": 1,
+  "changed_from": "2025-06-11",
+  "replace_through": "2025-06-12",
+  "series_mode": "suffix",
+  "prompts": [
+    {
+      "id": "p1",
+      "display_number": 1,
+      "text": "Set June 11 CPI to 0.2%",
+      "date_precision": "day",
+      "requested_start": "2025-06-11",
+      "requested_end": null,
+      "effective_start": "2025-06-11",
+      "effective_end": null,
+      "scope": "release",
+      "operation": "set",
+      "value": 0.2,
+      "unit": "percent",
+      "reference": null,
+      "status": "unsupported"
+    }
+  ],
+  "series": {
+    "target_id": "SPY",
+    "base_date": "2025-06-10",
+    "base_value": 100,
+    "unit": "index",
+    "frequency": "trading_session",
+    "points": []
+  },
+  "panels": {
+    "p1": {
+      "summary": "Synthetic qualitative-only revision; no numerical forecast.",
+      "hypotheses": [],
+      "evidence": [],
+      "impacts": [],
+      "horizon": "2 synthetic sessions",
+      "comparison": null,
+      "engine": "synthetic",
+      "support_count": 0,
+      "status": "unsupported"
+    }
+  }
+}

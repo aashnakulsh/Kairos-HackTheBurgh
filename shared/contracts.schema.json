@@ -1,0 +1,718 @@
+{
+  "$defs": {
+    "CommitRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "draft_id": {
+          "title": "Draft Id",
+          "type": "string"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        },
+        "request_id": {
+          "title": "Request Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "draft_id",
+        "expected_revision",
+        "request_id"
+      ],
+      "title": "CommitRequest",
+      "type": "object"
+    },
+    "Evidence": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "title": "Url",
+          "type": "string"
+        },
+        "publication_time": {
+          "title": "Publication Time",
+          "type": "string"
+        },
+        "passage_locator": {
+          "title": "Passage Locator",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "title",
+        "url",
+        "publication_time",
+        "passage_locator"
+      ],
+      "title": "Evidence",
+      "type": "object"
+    },
+    "Impact": {
+      "additionalProperties": false,
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "emoji": {
+          "title": "Emoji",
+          "type": "string"
+        },
+        "exposure": {
+          "enum": [
+            "direct",
+            "indirect"
+          ],
+          "title": "Exposure",
+          "type": "string"
+        },
+        "direction": {
+          "anyOf": [
+            {
+              "enum": [
+                "positive",
+                "negative",
+                "neutral"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Direction"
+        },
+        "metric_kind": {
+          "enum": [
+            "proxy_change",
+            "index_contribution",
+            "qualitative"
+          ],
+          "title": "Metric Kind",
+          "type": "string"
+        },
+        "magnitude": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Magnitude"
+        },
+        "unit": {
+          "anyOf": [
+            {
+              "enum": [
+                "percent",
+                "percentage_points"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Unit"
+        },
+        "comparator": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Comparator"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "string"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        },
+        "source_ids": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "name",
+        "emoji",
+        "exposure",
+        "direction",
+        "metric_kind",
+        "magnitude",
+        "unit",
+        "comparator",
+        "horizon",
+        "method",
+        "source_ids"
+      ],
+      "title": "Impact",
+      "type": "object"
+    },
+    "InterpretRequest": {
+      "additionalProperties": false,
+      "properties": {
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "mode": {
+          "enum": [
+            "add",
+            "replace"
+          ],
+          "title": "Mode",
+          "type": "string"
+        },
+        "selected_prompt_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Selected Prompt Id"
+        },
+        "playhead": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Playhead"
+        },
+        "expected_revision": {
+          "minimum": 0,
+          "title": "Expected Revision",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "text",
+        "mode",
+        "selected_prompt_id",
+        "playhead",
+        "expected_revision"
+      ],
+      "title": "InterpretRequest",
+      "type": "object"
+    },
+    "Panel": {
+      "additionalProperties": false,
+      "properties": {
+        "summary": {
+          "title": "Summary",
+          "type": "string"
+        },
+        "hypotheses": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Hypotheses",
+          "type": "array"
+        },
+        "evidence": {
+          "items": {
+            "$ref": "#/$defs/Evidence"
+          },
+          "title": "Evidence",
+          "type": "array"
+        },
+        "impacts": {
+          "items": {
+            "$ref": "#/$defs/Impact"
+          },
+          "title": "Impacts",
+          "type": "array"
+        },
+        "horizon": {
+          "title": "Horizon",
+          "type": "string"
+        },
+        "comparison": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Comparison"
+        },
+        "engine": {
+          "title": "Engine",
+          "type": "string"
+        },
+        "support_count": {
+          "minimum": 0,
+          "title": "Support Count",
+          "type": "integer"
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "summary",
+        "hypotheses",
+        "evidence",
+        "impacts",
+        "horizon",
+        "comparison",
+        "engine",
+        "support_count",
+        "status"
+      ],
+      "title": "Panel",
+      "type": "object"
+    },
+    "Point": {
+      "additionalProperties": false,
+      "properties": {
+        "date": {
+          "title": "Date",
+          "type": "string"
+        },
+        "kind": {
+          "enum": [
+            "observed",
+            "simulated",
+            "gap"
+          ],
+          "title": "Kind",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "q10": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Q10"
+        },
+        "q90": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Q90"
+        },
+        "engine": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Engine"
+        },
+        "segment_id": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Segment Id"
+        }
+      },
+      "required": [
+        "date",
+        "kind",
+        "value",
+        "q10",
+        "q90",
+        "engine",
+        "segment_id"
+      ],
+      "title": "Point",
+      "type": "object"
+    },
+    "Problem": {
+      "additionalProperties": false,
+      "properties": {
+        "status": {
+          "enum": [
+            "needs_clarification",
+            "unsupported",
+            "conflict",
+            "invalid",
+            "unavailable"
+          ],
+          "title": "Status",
+          "type": "string"
+        },
+        "reason": {
+          "title": "Reason",
+          "type": "string"
+        },
+        "choices": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Choices",
+          "type": "array"
+        }
+      },
+      "required": [
+        "status",
+        "reason",
+        "choices"
+      ],
+      "title": "Problem",
+      "type": "object"
+    },
+    "Prompt": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        },
+        "display_number": {
+          "minimum": 1,
+          "title": "Display Number",
+          "type": "integer"
+        },
+        "text": {
+          "title": "Text",
+          "type": "string"
+        },
+        "date_precision": {
+          "enum": [
+            "day",
+            "year",
+            "interval"
+          ],
+          "title": "Date Precision",
+          "type": "string"
+        },
+        "requested_start": {
+          "title": "Requested Start",
+          "type": "string"
+        },
+        "requested_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Requested End"
+        },
+        "effective_start": {
+          "title": "Effective Start",
+          "type": "string"
+        },
+        "effective_end": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Effective End"
+        },
+        "scope": {
+          "enum": [
+            "release",
+            "interval",
+            "recurring"
+          ],
+          "title": "Scope",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "set",
+            "add_pp",
+            "carry"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        },
+        "unit": {
+          "enum": [
+            "percent",
+            "percentage_points"
+          ],
+          "title": "Unit",
+          "type": "string"
+        },
+        "reference": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Reference"
+        },
+        "status": {
+          "enum": [
+            "supported",
+            "unsupported"
+          ],
+          "title": "Status",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "display_number",
+        "text",
+        "date_precision",
+        "requested_start",
+        "requested_end",
+        "effective_start",
+        "effective_end",
+        "scope",
+        "operation",
+        "value",
+        "unit",
+        "reference",
+        "status"
+      ],
+      "title": "Prompt",
+      "type": "object"
+    },
+    "RunResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "contract_version": {
+          "const": "1",
+          "title": "Contract Version",
+          "type": "string"
+        },
+        "data_label": {
+          "title": "Data Label",
+          "type": "string"
+        },
+        "timeline_id": {
+          "title": "Timeline Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 0,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "parent_revision": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Parent Revision"
+        },
+        "changed_from": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Changed From"
+        },
+        "replace_through": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Replace Through"
+        },
+        "series_mode": {
+          "enum": [
+            "full",
+            "suffix"
+          ],
+          "title": "Series Mode",
+          "type": "string"
+        },
+        "prompts": {
+          "items": {
+            "$ref": "#/$defs/Prompt"
+          },
+          "title": "Prompts",
+          "type": "array"
+        },
+        "series": {
+          "$ref": "#/$defs/Series"
+        },
+        "panels": {
+          "additionalProperties": {
+            "$ref": "#/$defs/Panel"
+          },
+          "title": "Panels",
+          "type": "object"
+        }
+      },
+      "required": [
+        "contract_version",
+        "data_label",
+        "timeline_id",
+        "revision",
+        "parent_revision",
+        "changed_from",
+        "replace_through",
+        "series_mode",
+        "prompts",
+        "series",
+        "panels"
+      ],
+      "title": "RunResponse",
+      "type": "object"
+    },
+    "Series": {
+      "additionalProperties": false,
+      "properties": {
+        "target_id": {
+          "title": "Target Id",
+          "type": "string"
+        },
+        "base_date": {
+          "title": "Base Date",
+          "type": "string"
+        },
+        "base_value": {
+          "title": "Base Value",
+          "type": "number"
+        },
+        "unit": {
+          "const": "index",
+          "title": "Unit",
+          "type": "string"
+        },
+        "frequency": {
+          "const": "trading_session",
+          "title": "Frequency",
+          "type": "string"
+        },
+        "points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "title": "Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "target_id",
+        "base_date",
+        "base_value",
+        "unit",
+        "frequency",
+        "points"
+      ],
+      "title": "Series",
+      "type": "object"
+    }
+  },
+  "additionalProperties": false,
+  "description": "Export root, not an HTTP payload.",
+  "properties": {
+    "interpret_request": {
+      "$ref": "#/$defs/InterpretRequest"
+    },
+    "commit_request": {
+      "$ref": "#/$defs/CommitRequest"
+    },
+    "run": {
+      "$ref": "#/$defs/RunResponse"
+    },
+    "problem": {
+      "$ref": "#/$defs/Problem"
+    }
+  },
+  "required": [
+    "interpret_request",
+    "commit_request",
+    "run",
+    "problem"
+  ],
+  "title": "ContractBundle",
+  "type": "object"
+}

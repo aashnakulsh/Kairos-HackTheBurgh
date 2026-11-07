@@ -1,0 +1,20 @@
+{
+  "contract_version": "1",
+  "data_label": "Synthetic example \u2014 not market data",
+  "timeline_id": "example",
+  "revision": 0,
+  "parent_revision": null,
+  "changed_from": null,
+  "replace_through": null,
+  "series_mode": "full",
+  "prompts": [],
+  "series": {
+    "target_id": "SPY",
+    "base_date": "2025-06-10",
+    "base_value": 100,
+    "unit": "index",
+    "frequency": "trading_session",
+    "points": []
+  },
+  "panels": {}
+}
