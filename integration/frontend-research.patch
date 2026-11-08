@@ -1,3 +1,25 @@
+diff --git a/tests/web-ui.test.mjs b/tests/web-ui.test.mjs
+index 5e9671c..6f39e74 100644
+--- a/tests/web-ui.test.mjs
++++ b/tests/web-ui.test.mjs
+@@ -105,6 +105,17 @@ test("clipping interpolates one head point between sessions, from observed into
+   assert.deepEqual(clipPoints(points, Infinity), points);
+ });
+
++test("revealed actuals outside forecast bands remain visible without changing forecast points", () => {
++  const points = fixture("first-run").series.points;
++  const before = structuredClone(points);
++  const original = yRange(points);
++  const actual = [{ ...points[0], date: "2025-06-11", value: original[1] + 20 }];
++  const revealed = yRange(points, actual);
++  assert.ok(revealed[1] > actual[0].value);
++  assert.deepEqual(points, before);
++  assert.deepEqual(yRange(points), original);
++});
++
+ test("playhead reads cached points only", () => {
+   const points = journey().series.points;
+   assert.equal(pointAt(points, "2025-06-14").date, "2025-06-13");
 diff --git a/web/src/App.tsx b/web/src/App.tsx
 index aed6898..b195ee5 100644
 --- a/web/src/App.tsx
@@ -16,13 +38,13 @@ index aed6898..b195ee5 100644
    const replacing = prompts.find(p => p.id === ws.selectedId)?.display_number ?? null;
 @@ -42,7 +47,7 @@ export function App() {
    };
- 
+
    const composer = (
 -    <Composer text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
 +    <Composer maxPrompts={ws.caps?.max_prompts} presets={ws.caps?.fixture_presets} text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
        onChange={ws.setText} onSubmit={submit} onCancel={ws.cancelSelection} />
    );
- 
+
 @@ -51,6 +56,7 @@ export function App() {
        <main className="intro">
          <h1 className="visually-hidden">US Market What If?</h1>
@@ -65,12 +87,12 @@ index d47e7ee..df6ab11 100644
 -import type { Capabilities, CommitRequest, CreateTimelineRequest, InterpretRequest,
 +import type { Capabilities, CommitRequest, CreateTimelineRequest, DescriptionRequest, DescriptionResponse, InterpretRequest,
    Problem, ReadyDraft, RevealResponse, RunResponse } from "../generated/contracts.ts";
- 
+
  export class ApiError extends Error {
 @@ -11,6 +11,19 @@ export class ApiError extends Error {
    }
  }
- 
+
 +/** Call only after applyRun has reconstructed a full revision, never with rounded chart values. */
 +export function descriptionRequest(run: RunResponse, promptId: string): DescriptionRequest {
 +  if (run.series_mode !== "full") throw new Error("Apply the forecast suffix before requesting a description");
@@ -89,7 +111,7 @@ index d47e7ee..df6ab11 100644
    prompt_id: string;
 @@ -19,7 +32,8 @@ export interface DeletePromptRequest {
  }
- 
+
  /** Same-origin /api in production; http://127.0.0.1:8000 for local fixture mode.
 - * No provider keys, OpenAI calls or automatic write retries belong in the browser.
 + * The browser forwards forecast numbers to the description relay; provider keys stay on the server.
@@ -114,7 +136,7 @@ index 11ab837..2ded372 100644
 +++ b/web/src/api/mockApi.ts
 @@ -119,6 +119,9 @@ export function createMockApi(): ReturnType<typeof createApi> {
    }
- 
+
    return {
 +    async describe(): Promise<never> {
 +      throw new ApiError(503, problem("unavailable", "description_not_configured", "Mock mode never calls OpenAI"));
@@ -123,7 +145,7 @@ index 11ab837..2ded372 100644
        return {
          contract_version: "1", mode: "fixture", data_label: LABEL, targets: ["SPY"], unit: "index", frequency: "trading_session",
 diff --git a/web/src/features/chart/Chart.tsx b/web/src/features/chart/Chart.tsx
-index d84dde5..1c707e3 100644
+index d84dde5..32988c1 100644
 --- a/web/src/features/chart/Chart.tsx
 +++ b/web/src/features/chart/Chart.tsx
 @@ -22,7 +22,7 @@ export interface ChartProps {
@@ -133,8 +155,17 @@ index d84dde5..1c707e3 100644
 -  onDeletePrompt: (id: string) => void;
 +  onDeletePrompt?: (id: string) => void;
  }
- 
+
  const only = (points: Point[], keep: (p: Point, next: Point | undefined) => boolean, field: "value" | "q10" | "q90" = "value") =>
+@@ -114,7 +114,7 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
+       hovermode: "x unified",
+       hoverlabel: { bgcolor: "#171717", bordercolor: "#404040" },
+       xaxis: { type: "date", range: [isoDay(range[0]), isoDay(range[1])], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)" },
+-      yaxis: { range: yRange(points), fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
++      yaxis: { range: yRange(points, reveal?.series.points), fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+       shapes,
+       annotations: forkDate ? [{ x: forkDate, xref: "x", yref: "paper", y: 0, yanchor: "bottom", xanchor: "left",
+         text: "simulated →", showarrow: false, font: { color: "#7dd3fc", size: 11 } }] : [],
 @@ -150,8 +150,8 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
                {m.label}
                <span className="chart-tooltip" aria-hidden="true">{m.title}</span>
@@ -146,13 +177,28 @@ index d84dde5..1c707e3 100644
            </div>
          ))}
          {playhead && ms(playhead) >= range[0] && ms(playhead) < range[1] &&
+diff --git a/web/src/features/chart/geometry.ts b/web/src/features/chart/geometry.ts
+index fa1b0d4..1ac757a 100644
+--- a/web/src/features/chart/geometry.ts
++++ b/web/src/features/chart/geometry.ts
+@@ -81,8 +81,8 @@ export function drawStart(points: Point[], changedFrom: string | null): number {
+ }
+
+ /** Fixed y-axis for the whole series so an animation never rescales it. */
+-export function yRange(points: Point[]): [number, number] {
+-  const values = points.flatMap(p => [p.value, p.q10, p.q90]).filter((v): v is number => v !== null);
++export function yRange(points: Point[], actual: Point[] = []): [number, number] {
++  const values = [...points, ...actual].flatMap(p => [p.value, p.q10, p.q90]).filter((v): v is number => v !== null);
+   if (!values.length) return [90, 110];
+   const lo = Math.min(...values), hi = Math.max(...values);
+   const pad = Math.max((hi - lo) * 0.08, 0.5);
 diff --git a/web/src/features/workspace/Composer.tsx b/web/src/features/workspace/Composer.tsx
 index cc174e7..0e5238b 100644
 --- a/web/src/features/workspace/Composer.tsx
 +++ b/web/src/features/workspace/Composer.tsx
 @@ -3,6 +3,8 @@ import type { Notice } from "./useWorkspace.ts";
  import { MAX_PROMPTS } from "../../config.ts";
- 
+
  export interface ComposerProps {
 +  maxPrompts?: number;
 +  presets?: string[];
@@ -161,12 +207,12 @@ index cc174e7..0e5238b 100644
    /** Active prompts, or null before the workspace opens. */
 @@ -16,7 +18,7 @@ export interface ComposerProps {
  }
- 
+
  /** Enter submits, Shift+Enter adds a line, Escape cancels a replacement. */
 -export function Composer({ text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
 +export function Composer({ maxPrompts = MAX_PROMPTS, presets = [], text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
    const ref = useRef<HTMLTextAreaElement>(null);
- 
+
    // Selecting a marker brings the composer into view with the old text ready to edit.
 @@ -43,15 +45,16 @@ export function Composer({ text, replacing, count, pending, notice, reducedMotio
      <form className="composer" data-replacing={replacing !== null || undefined}
@@ -202,7 +248,7 @@ index 63f1567..8c1d27b 100644
 -import type { Capabilities, CommitRequest, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
 +import type { Capabilities, CommitRequest, DescriptionResponse, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
  import type { ChartProps } from "../chart/Chart.tsx";
- 
+
  // shortcut: the in-browser mock is the default until the OpenAI parser lands; VITE_API=server uses the HTTP API.
 -const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
 -const STORAGE_KEY = "teamrelay.timeline_id";
@@ -210,13 +256,13 @@ index 63f1567..8c1d27b 100644
 +const api = import.meta.env.VITE_API === "server" ? serverApi : createMockApi();
 +const serverMode = import.meta.env.VITE_API === "server";
 +const STORAGE_KEY = `teamrelay.${serverMode ? "server" : "mock"}.timeline_id`;
- 
+
  export interface Notice {
    tone: "error" | "info";
 @@ -41,13 +43,44 @@ export function useWorkspace() {
    const [playhead, setPlayhead] = useState<string | null>(null);
    const [started, setStarted] = useState(false);
- 
+
 +  const [description, setDescription] = useState<DescriptionResponse | null>(null);
 +  const [descriptionPending, setDescriptionPending] = useState(false);
 +  const [descriptionError, setDescriptionError] = useState<string | null>(null);
@@ -252,7 +298,7 @@ index 63f1567..8c1d27b 100644
    const abort = useRef<AbortController | null>(null);
    const createId = useRef(crypto.randomUUID()); // reused until creation succeeds, so a blind retry is idempotent
    const stash = useRef(""); // unsent "Add prompt" text, restored when a selection is cancelled
- 
+
    const install = (next: RunResponse, animate: boolean, from: string | null = null) => {
 +    revealSeq.current++;
      runRef.current = next;
@@ -279,7 +325,7 @@ index 63f1567..8c1d27b 100644
      const body: DeletePromptRequest = { prompt_id: id, expected_revision: current.revision, request_id: crypto.randomUUID() };
      const send = async () => {
 @@ -208,16 +241,20 @@ export function useWorkspace() {
- 
+
    /** Toggles the actual-history overlay; hiding only drops the local copy, it never touches the run. */
    const toggleReveal = () => {
 +    const mine = ++revealSeq.current;
@@ -297,7 +343,7 @@ index 63f1567..8c1d27b 100644
 +      if (r.timeline_id === current.timeline_id && r.revision === current.revision) setReveal(r);
 +    }, e => { if (mine === revealSeq.current) void fail(e); });
    };
- 
+
    return {
 -    caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
 +    description, descriptionPending, descriptionError, canDelete: !serverMode, caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
@@ -311,7 +357,7 @@ index bc0aabf..8938f74 100644
 @@ -34,6 +34,21 @@ export interface CreateTimelineRequest {
    request_id: string;
  }
- 
+
 +export interface DescriptionRequest {
 +  prompt_id: string;
 +  forecast_points: Array<Point>;
@@ -338,7 +384,7 @@ index 061eca8..f42a31f 100644
 -import { defineConfig } from "vite";
 +import { defineConfig, loadEnv } from "vite";
  import react from "@vitejs/plugin-react";
- 
+
  // Same-origin /api in the browser; dev forwards it to the local fixture API (README).
 -export default defineConfig({
 +export default defineConfig(({ mode }) => ({

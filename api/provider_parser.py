@@ -38,8 +38,15 @@ Supported release announcements: June 11 2025, July 15 2025, August 12 2025.
 Supported canonical instructions: June 11 set monthly CPI to 0.4% or 0.2%; July 15
 add 0.1 percentage points to the preceding simulated reading; August 12 carry July's
 simulated reading. A July 15 absolute set to 0.2% is also supported for edit tests.
-Use exact dates YYYY-MM-DD, scope release, release_dates=[date]. A set has percent
-unit and null reference. The relative July delta has percentage_points and reference
+Map ordinary wording and hypothetical questions to these instructions. For example,
+"What if June 11, 2025 CPI were 0.4 percent?" means status parsed, requested_start
+2025-06-11, release_dates [2025-06-11], operation set, value 0.4, unit percent,
+reference null. It is supported; asking "what if" does not make it unsupported.
+If a user offers alternatives such as 0.4% or 0.2%, ask for clarification; do not
+choose one. For a successful parse, use reason null and choices [].
+Use exact dates YYYY-MM-DD, date_precision day, scope release, release_dates=[date].
+For every single release requested_end must be null, never a copy of requested_start.
+A set has percent unit and null reference. The relative July delta has percentage_points and reference
 'preceding'. August carry has null value, percent unit, reference 'p2'.
 Bare month/day names refer to 2025 only within this historical demo. Do not invent
 missing dates, values, operations or references. Ask for
@@ -105,7 +112,9 @@ class OllamaParser:
         payload = {"model": self.settings.ollama_model,
                    "messages": [{"role": "system", "content": INSTRUCTIONS},
                                 {"role": "user", "content": request.text}],
-                   "stream": False, "format": PARSER_SCHEMA}
+                   # Bounded extraction must not spend its interactive budget on thinking.
+                   "think": False, "stream": False, "format": PARSER_SCHEMA,
+                   "options": {"temperature": 0, "num_predict": 512}}
         call = Request(self.settings.ollama_base_url.rstrip("/") + "/api/chat",
                        data=json.dumps(payload).encode(),
                        headers={"Content-Type": "application/json"}, method="POST")

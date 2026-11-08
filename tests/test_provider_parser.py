@@ -81,6 +81,8 @@ class ParserTests(unittest.TestCase):
         self.assertEqual((parsed.operation, parsed.reference), ("add_pp", "preceding"))
         self.assertEqual(len(primary.calls), 1)
         self.assertEqual(len(local.calls), 1)
+        self.assertIs(json.loads(local.calls[0][0].data)["think"], False)
+        self.assertEqual(json.loads(local.calls[0][0].data)["options"], {"temperature": 0, "num_predict": 512})
         self.assertEqual(json.loads(local.calls[0][0].data)["format"]["required"],
                          list(json.loads(local.calls[0][0].data)["format"]["properties"]))
 
