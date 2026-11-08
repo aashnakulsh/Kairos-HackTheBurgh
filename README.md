@@ -1,4 +1,4 @@
-# 
+# Kairos
 
 **Ask "what if?" about the US stock market and watch the answer sail across the chart.**
 

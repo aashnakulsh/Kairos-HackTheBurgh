@@ -75,7 +75,7 @@ export function App() {
     return (
       <main className="intro">
         {backdrop("start", 0.35, 0)}
-        <h1 className="game-title game-title-start">US Market What If?</h1>
+        <h1 className="game-title game-title-start">Kairos</h1>
         <Instructions />
         {composer}
         {ws.capsFailed && <p className="intro-error">Couldn't reach the server. <button type="button" className="button button-quiet" onClick={ws.loadCaps}>Retry</button></p>}
@@ -100,7 +100,7 @@ export function App() {
       {/* Each prompt is one leg: the ship sails from the left dock to the right as prompts are added. */}
       {backdrop("voyage", mood, ws.legs ? Math.min(prompts.length / ws.legs, 1) : 0)}
       <header className="workspace-bar">
-        <h1 className="game-title">US Market What If?</h1>
+        <h1 className="game-title">Kairos</h1>
         <span className="data-label">{ws.run?.data_label ?? ws.caps?.data_label}</span>
         {ws.caps && <span>Data {ws.caps.coverage.first_session} to {ws.caps.coverage.last_session}</span>}
         <span className="voyage">Voyage {prompts.length} / {ws.legs} · {ws.pending ? `${ws.pending}…` : outlook}</span>

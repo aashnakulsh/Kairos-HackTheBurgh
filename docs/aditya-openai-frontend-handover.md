@@ -90,7 +90,7 @@ an otherwise valid saved login appear invalid.
 
 ## 3. Product goal and bounded demo
 
-The product is **US Market What If?** A user writes a dated economic assumption,
+The product is **Kairos**. A user writes a dated economic assumption,
 sees a conditional US equity forecast, adds dependent assumptions, edits an earlier
 event, and watches the later story replay. Actual historical outcomes are revealed
 separately for comparison.
