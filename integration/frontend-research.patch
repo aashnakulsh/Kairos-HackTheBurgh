@@ -1,3 +1,25 @@
+diff --git a/tests/web-ui.test.mjs b/tests/web-ui.test.mjs
+index 5e9671c..6f39e74 100644
+--- a/tests/web-ui.test.mjs
++++ b/tests/web-ui.test.mjs
+@@ -105,6 +105,17 @@ test("clipping interpolates one head point between sessions, from observed into
+   assert.deepEqual(clipPoints(points, Infinity), points);
+ });
+
++test("revealed actuals outside forecast bands remain visible without changing forecast points", () => {
++  const points = fixture("first-run").series.points;
++  const before = structuredClone(points);
++  const original = yRange(points);
++  const actual = [{ ...points[0], date: "2025-06-11", value: original[1] + 20 }];
++  const revealed = yRange(points, actual);
++  assert.ok(revealed[1] > actual[0].value);
++  assert.deepEqual(points, before);
++  assert.deepEqual(yRange(points), original);
++});
++
+ test("playhead reads cached points only", () => {
+   const points = journey().series.points;
+   assert.equal(pointAt(points, "2025-06-14").date, "2025-06-13");
 diff --git a/web/src/App.tsx b/web/src/App.tsx
 index aed6898..b195ee5 100644
 --- a/web/src/App.tsx
@@ -123,7 +145,7 @@ index 11ab837..2ded372 100644
        return {
          contract_version: "1", mode: "fixture", data_label: LABEL, targets: ["SPY"], unit: "index", frequency: "trading_session",
 diff --git a/web/src/features/chart/Chart.tsx b/web/src/features/chart/Chart.tsx
-index d84dde5..1c707e3 100644
+index d84dde5..32988c1 100644
 --- a/web/src/features/chart/Chart.tsx
 +++ b/web/src/features/chart/Chart.tsx
 @@ -22,7 +22,7 @@ export interface ChartProps {
@@ -135,6 +157,15 @@ index d84dde5..1c707e3 100644
  }
 
  const only = (points: Point[], keep: (p: Point, next: Point | undefined) => boolean, field: "value" | "q10" | "q90" = "value") =>
+@@ -114,7 +114,7 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
+       hovermode: "x unified",
+       hoverlabel: { bgcolor: "#171717", bordercolor: "#404040" },
+       xaxis: { type: "date", range: [isoDay(range[0]), isoDay(range[1])], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)" },
+-      yaxis: { range: yRange(points), fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
++      yaxis: { range: yRange(points, reveal?.series.points), fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+       shapes,
+       annotations: forkDate ? [{ x: forkDate, xref: "x", yref: "paper", y: 0, yanchor: "bottom", xanchor: "left",
+         text: "simulated →", showarrow: false, font: { color: "#7dd3fc", size: 11 } }] : [],
 @@ -150,8 +150,8 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
                {m.label}
                <span className="chart-tooltip" aria-hidden="true">{m.title}</span>
@@ -146,6 +177,21 @@ index d84dde5..1c707e3 100644
            </div>
          ))}
          {playhead && ms(playhead) >= range[0] && ms(playhead) < range[1] &&
+diff --git a/web/src/features/chart/geometry.ts b/web/src/features/chart/geometry.ts
+index fa1b0d4..1ac757a 100644
+--- a/web/src/features/chart/geometry.ts
++++ b/web/src/features/chart/geometry.ts
+@@ -81,8 +81,8 @@ export function drawStart(points: Point[], changedFrom: string | null): number {
+ }
+
+ /** Fixed y-axis for the whole series so an animation never rescales it. */
+-export function yRange(points: Point[]): [number, number] {
+-  const values = points.flatMap(p => [p.value, p.q10, p.q90]).filter((v): v is number => v !== null);
++export function yRange(points: Point[], actual: Point[] = []): [number, number] {
++  const values = [...points, ...actual].flatMap(p => [p.value, p.q10, p.q90]).filter((v): v is number => v !== null);
+   if (!values.length) return [90, 110];
+   const lo = Math.min(...values), hi = Math.max(...values);
+   const pad = Math.max((hi - lo) * 0.08, 0.5);
 diff --git a/web/src/features/workspace/Composer.tsx b/web/src/features/workspace/Composer.tsx
 index cc174e7..0e5238b 100644
 --- a/web/src/features/workspace/Composer.tsx

@@ -16,6 +16,15 @@ that must be preserved, and the remaining OpenAI/frontend work. Verify mutable
 state before acting. This file does not transfer local data, weights, credentials,
 databases, or uncommitted changes to another computer or account.
 
+**Continuation in Aditya's Windows checkout:** The original snapshot below records
+the Mac state at handoff. This checkout now has an uncommitted bounded OpenAI parser
+with local Ollama fallback (`api/provider_parser.py`), its focused tests, and a
+repaired `integration/frontend-research.patch`. The patch applied to
+`origin/frontend` at `f272c22` and the reconstructed frontend built successfully
+on Windows. No real provider call, Mac data/Chronos run, rendered browser check,
+commit or push has happened in this continuation. Confirm both current worktrees
+before using the older state and "not implemented" statements below.
+
 ## 1. Read this first
 
 There is already a working numerical product core. Do not rebuild it.
