@@ -1,0 +1,171 @@
+/* Chart feature styles. Every selector is scoped under .chart or .timeline. */
+
+.chart {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1;
+  margin: 0;
+}
+
+.chart-caption {
+  display: flex;
+  justify-content: flex-end;
+  min-height: 0;
+  padding: 0 24px 4px 56px;
+}
+
+/* Chart details as a small vertical white legend, pinned bottom-left on wide screens (clear of the centred composer). */
+.chart-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-width: 250px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--brown-glass);
+  color: var(--accent);
+  font-size: 11px;
+  line-height: 1.3;
+  text-shadow: none;
+}
+@media (min-width: 1200px) {
+  .chart-legend { position: fixed; left: 12px; bottom: 12px; z-index: 5; }
+}
+@media (max-width: 1199px) {
+  .chart-legend { order: 3; max-width: none; margin: 6px 0 0 56px; align-self: flex-start; }
+}
+
+.chart-key { display: inline-flex; align-items: center; gap: 6px; }
+.chart-key i { display: inline-block; width: 18px; height: 0; border-top: 2px solid; }
+.chart-key .key-observed { border-color: #e5e5e5; }
+.chart-key .key-simulated { border-color: #7dd3fc; border-top-style: dotted; border-top-width: 3px; }
+.chart-key .key-band { height: 8px; border: 0; background: rgba(244, 114, 182, 0.45); }
+.chart-key .key-reveal { border-color: #fbbf24; }
+
+.chart-skip {
+  margin-left: auto;
+}
+
+.chart-plot {
+  position: relative;
+  flex: 1;
+  min-height: 220px;
+  overflow-x: clip; /* hidden tooltips' layout boxes must not widen the page; y stays visible for the × */
+}
+
+.chart-canvas {
+  position: absolute;
+  inset: 0;
+}
+
+.chart-marker {
+  position: absolute;
+  transform: translateX(-50%);
+}
+/* Lift the hovered/focused marker so its tooltip and × clear neighbouring labels. */
+.chart-marker:hover, .chart-marker:focus-within { z-index: 3; }
+
+.chart-marker-select {
+  position: relative;
+  padding: 2px 8px;
+  border: 1px solid #9a6b0b;
+  border-radius: 999px;
+  background: var(--accent);
+  color: var(--brown);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), border-color 150ms ease, background-color 150ms ease;
+}
+.chart-marker-select:active { transform: scale(0.97); }
+.chart-marker-select[aria-pressed="true"] { border-color: var(--brown); box-shadow: 0 0 0 2px var(--brown); }
+
+/* Small × at the label's top-right: appears on hover or keyboard focus; on touch, on the selected marker. */
+.chart-marker-delete {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  width: 16px;
+  height: 16px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid #525252;
+  border-radius: 50%;
+  background: #262626;
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  pointer-events: none;
+  transform: scale(0.9);
+  transition: opacity 125ms var(--ease-out), transform 125ms var(--ease-out), background-color 150ms ease;
+}
+.chart-marker-delete::after { content: ""; position: absolute; inset: -6px; } /* bigger hit area */
+.chart-marker:focus-within .chart-marker-delete { opacity: 1; pointer-events: auto; transform: none; }
+.chart-marker-delete:active { transform: scale(0.9); }
+@media (hover: hover) and (pointer: fine) {
+  .chart-marker:hover .chart-marker-delete { opacity: 1; pointer-events: auto; transform: none; }
+  .chart-marker-select:hover { border-color: var(--brown); }
+  .chart-marker-delete:hover { background: #b91c1c; border-color: #b91c1c; }
+}
+@media (hover: none) {
+  .chart-marker[data-selected] .chart-marker-delete { opacity: 1; pointer-events: auto; transform: none; }
+}
+
+.chart-tooltip {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 50%;
+  translate: -50% 0;
+  padding: 4px 8px;
+  border-radius: 6px;
+  background: var(--brown);
+  border: 1px solid var(--brown-edge);
+  color: var(--accent);
+  width: max-content;
+  max-width: 240px; /* Chart.tsx TOOLTIP_HALF depends on this */
+  pointer-events: none;
+  opacity: 0;
+  transform: scale(0.97);
+  transform-origin: top center;
+  transition: opacity 125ms var(--ease-out), transform 125ms var(--ease-out);
+  z-index: 3;
+}
+
+.chart-marker[data-align="end"] .chart-tooltip { left: auto; right: 0; translate: none; transform-origin: top right; }
+.chart-marker[data-align="start"] .chart-tooltip { left: 0; translate: none; transform-origin: top left; }
+.chart-marker-select:focus-visible .chart-tooltip { opacity: 1; transform: none; }
+@media (hover: hover) and (pointer: fine) {
+  .chart-marker-select:hover .chart-tooltip { opacity: 1; transform: none; }
+}
+
+.timeline { display: flex; flex-direction: column; gap: 4px; }
+
+/* Start year under the graph's left end, End year under its right end. */
+.timeline-range { display: flex; justify-content: space-between; gap: 12px; }
+.timeline-box {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 8px;
+  border: 1px solid var(--brown-edge);
+  border-radius: 6px;
+  background: var(--brown-glass);
+  color: var(--accent);
+  font-family: var(--pixel-font);
+  font-size: 19px;
+}
+.timeline-box input {
+  width: 4.6em;
+  padding: 2px 4px;
+  border: 1px solid var(--brown-edge);
+  border-radius: 4px;
+  background: var(--brown);
+  color: var(--accent);
+  font: 20px/1 var(--pixel-font); /* pixel digits to match the theme */
+}
