@@ -1,0 +1,7 @@
+-r requirements-market.txt
+-r requirements-chronos-smoke.txt
+# Resolved CPU inference stack verified on the initial host.
+torch==2.15.0
+transformers==5.22.2
+accelerate==1.15.0
+huggingface-hub==2.4.0

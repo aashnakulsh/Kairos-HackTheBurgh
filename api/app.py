@@ -12,8 +12,10 @@ from api.settings import Settings
 
 
 def create_app(settings=None, *, parser=None, adapter=None, now=None):
-    app = FastAPI(title="TeamRelay durable API — synthetic numerical adapter", version="1")
-    service = DurableService(settings or Settings(), parser=parser, adapter=adapter, now=now)
+    settings = settings or Settings()
+    title = "local historical research" if settings.app_mode == "research" else "synthetic numerical adapter"
+    app = FastAPI(title=f"TeamRelay durable API — {title}", version="1")
+    service = DurableService(settings, parser=parser, adapter=adapter, now=now)
     app.state.backend_service = service
     app.add_middleware(CORSMiddleware,
         allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],

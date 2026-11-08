@@ -12,6 +12,27 @@ from api.synthetic_forecast import LABEL
 from shared.fixture_service import SESSIONS, point
 
 
+def forecast_points(request, adapter, revision):
+    """Validate the numerical boundary before any candidate can be persisted."""
+    dates = [r.date for r in request.future]
+    segment_id, model_version = request.segment_id, request.model_version
+    try:
+        raw = adapter.forecast_segment(request)
+        result = ForecastResult.model_validate(raw.model_dump() if isinstance(raw, ForecastResult) else raw)
+        if result.status == "unsupported":
+            raise BackendError(200, "unsupported", "forecast_unsupported", result.reason, revision)
+        if ([p.date for p in result.points] != dates
+            or result.model_version != model_version or result.model_version != adapter.model_version
+            or any(p.segment_id != segment_id or p.engine != result.engine for p in result.points)):
+            raise ValueError("Adapter output does not match requested segment")
+        return result
+    except BackendError:
+        raise
+    except Exception as exc:
+        raise BackendError(503, "unavailable", "forecast_failed",
+            "Numerical adapter failed validation or execution; committed state is unchanged", revision) from exc
+
+
 def candidate(old, draft, request_id, adapter):
     prompts = deepcopy(old["prompts"])
     previous = next((p for p in prompts if p["id"] == draft.selected_prompt_id), None)
@@ -89,20 +110,7 @@ def candidate(old, draft, request_id, adapter):
             model_version=adapter.model_version, history=history, future=future,
             assumptions=[LABEL, "Carry the active CPI reading until the next explicit intervention",
                 "Bands conditional on the preceding simulated median"])
-        try:
-            raw = adapter.forecast_segment(forecast_request)
-            result = ForecastResult.model_validate(raw.model_dump() if isinstance(raw, ForecastResult) else raw)
-            if result.status == "unsupported":
-                raise BackendError(200, "unsupported", "forecast_unsupported", result.reason, old["revision"])
-            if ([p.date for p in result.points] != [r["date"] for r in future]
-                    or result.model_version != adapter.model_version
-                    or any(p.segment_id != active["id"] or p.engine != result.engine for p in result.points)):
-                raise ValueError("Adapter output does not match requested segment")
-        except BackendError:
-            raise
-        except Exception as exc:
-            raise BackendError(503, "unavailable", "forecast_failed",
-                "Numerical adapter failed validation or execution; committed state is unchanged", old["revision"]) from exc
+        result = forecast_points(forecast_request, adapter, old["revision"])
         points.extend(p.model_dump() for p in result.points)
         history = list(forecast_request.history) + [HistoryRow(date=p.date, level=p.value,
             kind="simulated", available_at=None, cpi_percent=row["cpi_percent"],

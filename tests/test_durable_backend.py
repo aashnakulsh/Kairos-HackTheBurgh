@@ -22,7 +22,7 @@ class DurableTests(unittest.TestCase):
         self.directory = TemporaryDirectory()
         self.addCleanup(self.directory.cleanup)
         self.path = Path(self.directory.name) / "nested" / "backend.sqlite"
-        self.settings = Settings(sqlite_path=self.path)
+        self.settings = Settings(app_mode="fixture", sqlite_path=self.path)
         self.clock = datetime(2026, 11, 8, tzinfo=timezone.utc)
         self.client = self.restart()
         result = self.client.post("/api/timelines", json={"target_id": "SPY", "request_id": "create"})
@@ -104,7 +104,7 @@ class DurableTests(unittest.TestCase):
         self.assertEqual(before, self.get())
         self.clock += timedelta(hours=1)
         self.assertEqual(response.json(), self.client.post(self.url + "/commit", json=body).json())
-        code = "from api.app import create_app; from api.settings import Settings; from pathlib import Path; import sys,json; print(json.dumps(create_app(Settings(sqlite_path=Path(sys.argv[1]))).state.backend_service.get(sys.argv[2])))"
+        code = "from api.app import create_app; from api.settings import Settings; from pathlib import Path; import sys,json; print(json.dumps(create_app(Settings(app_mode='fixture', sqlite_path=Path(sys.argv[1]))).state.backend_service.get(sys.argv[2])))"
         output = subprocess.check_output([sys.executable, "-c", code, str(self.path), self.tid], text=True)
         self.assertEqual(json.loads(output), before)
 

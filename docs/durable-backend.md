@@ -1,5 +1,10 @@
 # Durable backend milestone and host handoff
 
+Current update: Aashna and Aditya work together in this folder/chat. The bounded
+June real-data path is now available through `APP_MODE=research`; see
+[the research API startup and tests](real-data-adapter.md#run-the-research-api).
+The original synthetic milestone and its verification are recorded below.
+
 Work stays on `backend`, tracking `origin/backend`, as explicitly authorized by
 Aashna. The tree was clean at task start. Board #1 and the local inbox contained
 test notifications and Aditya's foundation announcement; no active conflicting
