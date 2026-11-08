@@ -18,6 +18,18 @@ export interface DeletePromptRequest {
   request_id: string;
 }
 
+/** End-of-journey summary (architecture §5). shortcut: hand-written until api/contracts.py defines it. */
+export interface JourneySummary {
+  timeline_id: string;
+  revision: number;
+  data_label: string;
+  headline: string;
+  summary: string;
+  /** Percent change of the whole simulated voyage, from the level before the first prompt to the final point. */
+  net_change_percent: number | null;
+  legs: Array<{ prompt_id: string; display_number: number; text: string; change_percent: number | null }>;
+}
+
 /** Same-origin /api in production; http://127.0.0.1:8000 for local fixture mode.
  * No provider keys, OpenAI calls or automatic write retries belong in the browser.
  * Types are compile-time only; HTTP response conformance is checked by the server.
@@ -42,6 +54,7 @@ export function createApi(baseUrl = "", fetcher: typeof fetch = fetch) {
     interpret: (id: string, body: InterpretRequest, signal?: AbortSignal) => call<ReadyDraft | Problem>(`${timeline(id)}/interpret`, body, signal),
     commit: (id: string, body: CommitRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/commit`, body, signal),
     deletePrompt: (id: string, body: DeletePromptRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/delete`, body, signal),
+    summary: (id: string, revision: number, signal?: AbortSignal) => call<JourneySummary>(`${timeline(id)}/revisions/${revision}/summary`, undefined, signal),
     reveal: (id: string, revision: number, signal?: AbortSignal) => call<RevealResponse>(`${timeline(id)}/revisions/${revision}/reveal`, undefined, signal),
   };
 }

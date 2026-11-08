@@ -24,7 +24,7 @@ text to `/interpret`, so it needs no change when the parser lands. To use the HT
 fixture/live API instead, start the server from the root README and run
 `VITE_API=server npm run dev` (Vite forwards `/api` to port 8000). `npm run build` type-checks
 and bundles. Optional `VITE_BACKGROUND_ASSET=/your.gif` (file in `web/public/`)
-replaces the outcome gradient. `src/api/client.ts` now supplies typed calls and
+replaces the pixel-sea background. `src/api/client.ts` now supplies typed calls and
 `src/api/applyRun.ts` applies full/suffix cache updates. Use those in the workspace.
 Start the local HTTP fixture API using the root README. Fixture mode must visibly say
 synthetic example. Node tests exercise the client/cache without React dependencies.

@@ -8,6 +8,8 @@ import "./chart.css";
 export const MARGIN = { l: 56, r: 24, b: 28 };
 const LABEL_ROW = 24;
 const LABEL_GAP = 84;
+/** y-axis value where the background sea's surface sits. */
+const SEA_LEVEL = 2000;
 const TOOLTIP_HALF = 130; // half of .chart-tooltip's 240px max-width, plus a little air
 const FULL_DRAW_MS = 1200;
 const EDIT_DRAW_MS = 700;
@@ -74,6 +76,11 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
   const visibleMarks = marks.filter(m => ms(m.start) >= range[0] && ms(m.start) < range[1]);
   const rows = stackRows(visibleMarks.map(m => xOf(m.start)), LABEL_GAP);
   const top = (Math.max(-1, ...rows) + 1) * LABEL_ROW + 12;
+  // Same plot size, adjusted y scale: the top always clears the sea line, so the ship (sea → y max) always has room.
+  const [yLo, dataHi] = yRange(points);
+  const yHi = Math.max(dataHi, SEA_LEVEL * 1.25);
+  // Pixel y of SEA_LEVEL inside the plot, clamped to the plot area; the background sea reads it from data-sea-y.
+  const seaY = Math.min(Math.max(top + ((yHi - SEA_LEVEL) / (yHi - yLo)) * (height - MARGIN.b - top), top), height - MARGIN.b);
   const forkDate = points.find(p => p.kind === "simulated")?.date;
   const segments = new Set(points.map(p => p.segment_id).filter(Boolean));
 
@@ -84,7 +91,7 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
     const traces: Data[] = [
       { x, y: only(shown, simulatedish, "q90"), mode: "lines", line: { width: 0 }, hoverinfo: "skip", name: "90th percentile" },
       { x, y: only(shown, simulatedish, "q10"), mode: "lines", line: { width: 0 }, fill: "tonexty",
-        fillcolor: "rgba(125, 211, 252, 0.18)", hoverinfo: "skip", name: "10th percentile" },
+        fillcolor: "rgba(244, 114, 182, 0.28)", hoverinfo: "skip", name: "10th percentile" }, // pink: contrasts with the blue median and the sea
       { x, y: only(shown, p => p.kind === "observed"), mode: "lines", name: "Observed",
         line: { color: "#e5e5e5", width: 2 } },
       { x, y: only(shown, simulatedish), mode: "lines", name: "Simulated median",
@@ -114,7 +121,7 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
       hovermode: "x unified",
       hoverlabel: { bgcolor: "#171717", bordercolor: "#404040" },
       xaxis: { type: "date", range: [isoDay(range[0]), isoDay(range[1])], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)" },
-      yaxis: { range: yRange(points), fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+      yaxis: { range: [yLo, yHi], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
       shapes,
       annotations: forkDate ? [{ x: forkDate, xref: "x", yref: "paper", y: 0, yanchor: "bottom", xanchor: "left",
         text: "simulated →", showarrow: false, font: { color: "#7dd3fc", size: 11 } }] : [],
@@ -132,12 +139,16 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
 
   return (
     <figure className="chart" aria-label="Forecast chart">
-      <figcaption className="chart-caption">
+      {/* Small vertical legend pinned to the screen's bottom-left corner (in flow on narrow screens). */}
+      <figcaption className="chart-legend">
         {caption}
         {segments.size > 1 && <span>Later bands are conditional on the preceding simulated median.</span>}
-        {animating && <button type="button" className="chart-skip" onClick={() => setHead(Infinity)}>Skip animation</button>}
       </figcaption>
-      <div className="chart-plot">
+      <div className="chart-caption">
+        {animating && <button type="button" className="chart-skip" onClick={() => setHead(Infinity)}>Skip animation</button>}
+      </div>
+      {/* The background ship floats on data-sea-y and its mast tip reaches data-top-y (the y-axis maximum). */}
+      <div className="chart-plot" data-sea-y={height ? Math.round(seaY) : undefined} data-top-y={height ? top : undefined}>
         <div ref={plotRef} className="chart-canvas" />
         {visibleMarks.map((m, i) => (
           // Wrapper, not a button: the delete × is a sibling button (buttons cannot nest).

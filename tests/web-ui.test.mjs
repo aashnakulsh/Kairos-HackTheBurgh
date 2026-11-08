@@ -6,6 +6,7 @@ import { clipPoints, domain, drawStart, markers, ms, pointAt, stackRows, yRange 
 import { formatImpact, rankImpacts, segmentTrend } from "../web/src/features/workspace/format.ts";
 import { createMockApi, readDates } from "../web/src/api/mockApi.ts";
 import { MAX_PROMPTS } from "../web/src/config.ts";
+import { EXAMPLES, randomExample } from "../web/src/features/workspace/examples.ts";
 
 test("mock date guess accepts free wording and any year", () => {
   assert.deepEqual(readDates("What if inflation spiked in 2008?"), { precision: "year", start: "2008-01-01", end: "2008-12-31" });
@@ -52,13 +53,30 @@ test("mock: free-text prompts redraw from changed_from and keep the earlier pref
   assert.deepEqual(run.series.points.filter(p => p.date < "2003-01-06"), before.series.points.filter(p => p.date < "2003-01-06"));
   assert.ok(run.series.points.filter(p => p.date < "2015-01-01").every(p => p.kind === "observed"));
 
-  // MAX_PROMPTS caps active prompts (p2 + four more = 5); a sixth is refused without a new revision.
-  for (const year of [1985, 1990, 1999, 2020]) await send(`boom in ${year}`);
+  // MAX_PROMPTS caps active prompts (p2 + MAX_PROMPTS - 1 more); one beyond is refused without a new revision.
+  for (let i = 1; i < MAX_PROMPTS; i++) await send(`boom in ${1981 + i * 3}`);
   assert.equal(run.prompts.length, MAX_PROMPTS);
   const draft = await api.interpret(run.timeline_id, { text: "crash in 2010", mode: "add", expected_revision: run.revision });
   const refused = await api.commit(run.timeline_id, { draft_id: draft.draft_id, expected_revision: run.revision, request_id: "over" });
   assert.equal(refused.code, "prompt_limit");
   assert.equal((await api.restore(run.timeline_id)).revision, run.revision);
+
+  // End-of-journey summary covers every leg, in timeline order, for the requested revision.
+  const summary = await api.summary(run.timeline_id, run.revision);
+  assert.equal(summary.revision, run.revision);
+  assert.equal(summary.legs.length, MAX_PROMPTS);
+  assert.deepEqual(summary.legs.map(l => l.prompt_id), [...run.prompts].sort((a, b) => a.effective_start.localeCompare(b.effective_start)).map(p => p.id));
+  assert.equal(typeof summary.net_change_percent, "number");
+  assert.match(summary.summary, /Synthetic mock/);
+});
+
+test("ten distinct situational examples; the mock reads a date from each and rotation never repeats", () => {
+  assert.equal(new Set(EXAMPLES).size, 10);
+  for (const e of EXAMPLES) {
+    assert.ok(readDates(e), `no date read from: ${e}`);
+    assert.doesNotMatch(e, /%|\bCPI\b|\bpp\b|percentage point/i, `technical wording in: ${e}`);
+  }
+  for (let i = 0; i < 50; i++) assert.notEqual(randomExample(EXAMPLES[0]), EXAMPLES[0]);
 });
 
 const fixture = name => JSON.parse(readFileSync(new URL(`../shared/fixtures/${name}.json`, import.meta.url), "utf8"));

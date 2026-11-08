@@ -49,6 +49,8 @@ export function NarrativePanel({ prompt, panel, trend }: { prompt: Prompt; panel
   const direct = markets("direct"), indirect = markets("indirect");
   return (
     <section className="note narrative" aria-label={`Prompt ${prompt.display_number} description`} key={prompt.id}>
+      {/* Inner area scrolls, so the scroll's wooden rods (outside the paper) are never clipped. */}
+      <div className="note-scroll">
       <h2 className="note-title">prompt {prompt.display_number}</h2>
       <div className="note-divider" aria-hidden="true">{divider(prompt.display_number)}</div>
       <p className="note-trend" data-trend={trend.direction}>{trendText(trend)}</p>
@@ -72,6 +74,7 @@ export function NarrativePanel({ prompt, panel, trend }: { prompt: Prompt; panel
         <p className="narrative-meta">{panel.horizon} · engine {panel.engine} · {panel.support_count} supporting cases
           {panel.comparison && ` · ${panel.comparison}`}</p>
       </>}
+      </div>
     </section>
   );
 }

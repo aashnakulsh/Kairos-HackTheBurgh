@@ -8,6 +8,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/vt323": "^5.3.0",
     "plotly.js-dist-min": "^4.2.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1"

@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { applyRun } from "../../api/applyRun.ts";
-import { ApiError, createApi, type DeletePromptRequest } from "../../api/client.ts";
+import { ApiError, createApi, type DeletePromptRequest, type JourneySummary } from "../../api/client.ts";
 import { MAX_PROMPTS } from "../../config.ts";
 import { createMockApi } from "../../api/mockApi.ts";
 import type { Capabilities, CommitRequest, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
@@ -9,6 +9,7 @@ import type { ChartProps } from "../chart/Chart.tsx";
 // shortcut: the in-browser mock is the default until the OpenAI parser lands; VITE_API=server uses the HTTP API.
 const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
 const STORAGE_KEY = "teamrelay.timeline_id";
+const LEGS_KEY = "teamrelay.legs";
 
 export interface Notice {
   tone: "error" | "info";
@@ -18,11 +19,11 @@ export interface Notice {
   retry?: () => void;
 }
 
-function remember(id: string | null) {
-  try { id ? localStorage.setItem(STORAGE_KEY, id) : localStorage.removeItem(STORAGE_KEY); } catch { /* storage blocked: reload starts fresh */ }
+function remember(value: string | null, key = STORAGE_KEY) {
+  try { value ? localStorage.setItem(key, value) : localStorage.removeItem(key); } catch { /* storage blocked: reload starts fresh */ }
 }
-function recalled() {
-  try { return localStorage.getItem(STORAGE_KEY); } catch { return null; }
+function recalled(key = STORAGE_KEY) {
+  try { return localStorage.getItem(key); } catch { return null; }
 }
 
 /** Committed workspace state and the interpret → commit flow. Only a successful commit changes the chart. */
@@ -40,6 +41,10 @@ export function useWorkspace() {
   const [reveal, setReveal] = useState<RevealResponse | null>(null);
   const [playhead, setPlayhead] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
+  /** Journey length chosen on the start screen (1…MAX_PROMPTS); null until chosen. Client-side game state. */
+  const [legs, setLegsState] = useState<number | null>(() => Number(recalled(LEGS_KEY)) || null);
+  const [summary, setSummary] = useState<JourneySummary | null>(null);
+  const setLegs = (n: number | null) => { setLegsState(n); remember(n ? String(n) : null, LEGS_KEY); };
 
   const runRef = useRef(run);
   const seq = useRef(0);
@@ -130,8 +135,12 @@ export function useWorkspace() {
     const prompt = text.trim();
     if (!prompt) return;
     const replacing = selectedId;
-    if (!replacing && (runRef.current?.prompts.length ?? 0) >= MAX_PROMPTS) {
-      setNotice({ tone: "error", reason: `A timeline holds up to ${MAX_PROMPTS} prompts. Delete one (hover its label and press ×) or select one to replace. Your text is kept.` });
+    if (!legs || legs < 1 || legs > MAX_PROMPTS) {
+      setNotice({ tone: "error", reason: `Choose how many prompts your journey has (1 to ${MAX_PROMPTS}).` });
+      return;
+    }
+    if (!replacing && (runRef.current?.prompts.length ?? 0) >= legs) {
+      setNotice({ tone: "error", reason: `Your journey has ${legs} prompt${legs === 1 ? "" : "s"}. Delete one (hover its label and press ×) or select one to replace. Your text is kept.` });
       return;
     }
     const { mine, signal } = start();
@@ -216,8 +225,32 @@ export function useWorkspace() {
       e => fail(e));
   };
 
+  /** End screen: the backend's summary of the whole voyage for the current revision. */
+  const requestSummary = () => {
+    const current = runRef.current;
+    if (!current) return;
+    setSummary(null);
+    api.summary(current.timeline_id, current.revision).then(
+      r => { if (runRef.current?.revision === r.revision) setSummary(r); },
+      e => fail(e));
+  };
+
+  /** Back to the start screen with a fresh timeline. The old timeline stays on the server untouched. */
+  const newJourney = () => {
+    abort.current?.abort();
+    seq.current++;
+    runRef.current = null;
+    createId.current = crypto.randomUUID();
+    stash.current = "";
+    remember(null);
+    setLegs(null);
+    setRun(null); setDraw(null); setText(""); setSelectedId(null); setFocusId(null);
+    setPending(null); setNotice(null); setReveal(null); setSummary(null); setPlayhead(null); setStarted(false);
+  };
+
   return {
     caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
     pending, notice, reveal, playhead, setPlayhead, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
+    legs, setLegs, summary, requestSummary, newJourney,
   };
 }

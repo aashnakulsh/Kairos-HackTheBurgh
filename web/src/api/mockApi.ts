@@ -1,6 +1,7 @@
 import type { Capabilities, CommitRequest, CreateTimelineRequest, Instruction, InterpretRequest, Panel, Point,
   Problem, Prompt, ReadyDraft, RevealResponse, RunResponse } from "../generated/contracts.ts";
-import { ApiError, createApi, type DeletePromptRequest } from "./client.ts";
+import { ApiError, createApi, type DeletePromptRequest, type JourneySummary } from "./client.ts";
+import { segmentTrend } from "../features/workspace/format.ts";
 import { MAX_PROMPTS } from "../config.ts";
 
 // shortcut: temporary in-browser stand-in for the backend so any free-text prompt redraws a fake
@@ -28,13 +29,15 @@ const BASE: number[] = [100];
 for (let i = 1; i < SESSIONS.length; i++) BASE.push(BASE[i - 1] * (1 + BASE_DRIFT + noise(i)));
 
 const hash = (text: string) => [...text].reduce((h, c) => Math.imul(h ^ c.charCodeAt(0), 16777619) >>> 0, 2166136261);
-const NEGATIVE = /crash|recession|war|default|collapse|crisis|panic|pandemic|shutdown|bankrupt|hike|tariff|fall|drop|bear|inflation|spike/;
-const POSITIVE = /boom|rally|cut|stimulus|growth|bull|rise|surge|recover|bail|peace/;
+// Checked first: averted disasters ("never invaded", "crisis didn't happen", "rescued") read as good news.
+const AVERTED = /never|didn'?t|did not|rescue|saved|stay|deal|peace/;
+const NEGATIVE = /crash|recession|war|default|collapse|crisis|panic|pandemic|shutdown|lockdown|bankrupt|hike|tariff|fall|drop|bear|inflation|spike|bomb|invad|attack|hurricane/;
+const POSITIVE = /boom|rally|cut|stimulus|growth|bull|rise|surge|recover|bail/;
 /** Weekly drift added while the prompt is active. Keyword sign so demos look plausible; magnitude from the text hash. */
 function shock(text: string) {
   const t = text.toLowerCase();
-  const sign = NEGATIVE.test(t) ? -1 : POSITIVE.test(t) ? 1 : hash(t) & 1 ? 1 : -1;
-  return sign * (0.002 + ((hash(t) >>> 1) % 1000) / 1000 * 0.004);
+  const sign = AVERTED.test(t) || POSITIVE.test(t) ? 1 : NEGATIVE.test(t) ? -1 : hash(t) & 1 ? 1 : -1;
+  return sign * (0.004 + ((hash(t) >>> 1) % 1000) / 1000 * 0.004); // strong enough that the window's net sign follows the wording
 }
 
 const MONTHS = ["jan", "feb", "mar", "apr", "may", "jun", "jul", "aug", "sep", "oct", "nov", "dec"];
@@ -74,9 +77,11 @@ function seriesFor(prompts: Prompt[]): Point[] {
     // Latest-started prompt still inside its window wins; after it expires the base drift resumes.
     const active = ordered.findLast(p => p.effective_start <= date &&
       date <= (p.effective_end ?? SESSIONS[Math.min(SESSIONS.indexOf(p.effective_start) + SHOCK_WEEKS, SESSIONS.length - 1)]));
-    value *= 1 + BASE_DRIFT + (active ? shock(active.text) : 0) + noise(i);
+    value *= 1 + BASE_DRIFT + (active ? shock(active.text) : 0) + noise(i) * 0.5;
     const spread = Math.min(0.012 * Math.sqrt(i - fork + 1), 0.3);
-    return { date, kind: "simulated", value, q10: value * (1 - spread), q90: value * (1 + spread), engine: "mock", segment_id: segment.id };
+    return { date, kind: "simulated", value, q10: value * (1 - spread), q90: value * (1 + spread), engine: "mock",
+      // A prompt's segment is only its active window, like the real short horizons; the drift after it is a separate segment.
+      segment_id: active ? active.id : `${segment.id}-drift` };
   });
 }
 
@@ -158,7 +163,7 @@ export function createMockApi(): ReturnType<typeof createApi> {
         ?? (selected ? { precision: selected.date_precision, start: selected.requested_start, end: selected.requested_end } : null)
         ?? (body.playhead ? { precision: "day" as const, start: body.playhead, end: null } : null);
       if (!reading) return problem("needs_clarification", "date_missing",
-        "When should this happen? Add a year or date (for example “in 2008”). The mock only reads years and dates; the OpenAI parser will handle any wording.", run.revision);
+        "When should this happen? Add a year (for example “in 2008”). Made-up events always need one. The real backend will work out the dates of historical events by itself; this temporary mock cannot.", run.revision);
       if (reading.end && reading.end < reading.start) return problem("invalid", "reversed_dates", "The end date is before the start date.", run.revision);
       const start = sessionOnOrAfter(reading.start);
       const end = reading.end ? sessionOnOrBefore(reading.end) : null;
@@ -217,6 +222,28 @@ export function createMockApi(): ReturnType<typeof createApi> {
       const next = snapshot(tl, run.prompts.filter(p => p !== gone), body.request_id, gone.effective_start);
       tl.revisions.push(next);
       return suffix(next);
+    },
+
+    async summary(id: string, revision: number): Promise<JourneySummary> {
+      await sleep();
+      const run = timeline(id).revisions[revision];
+      if (!run) throw new ApiError(404, problem("not_found", "revision_not_found", "Unknown revision"));
+      const points = run.series.points;
+      const start = points.findLast(p => p.kind === "observed")?.value ?? null;
+      const end = points.at(-1)?.value ?? null;
+      const net = start && end ? (end / start - 1) * 100 : null;
+      const legs = [...run.prompts].sort((a, b) => a.effective_start.localeCompare(b.effective_start))
+        .map(p => ({ prompt_id: p.id, display_number: p.display_number, text: p.text, change_percent: segmentTrend(points, p.id).change }));
+      const worst = legs.reduce<(typeof legs)[number] | null>((w, l) => (l.change_percent ?? 0) < (w?.change_percent ?? 0) ? l : w, null);
+      const best = legs.reduce<(typeof legs)[number] | null>((b, l) => (l.change_percent ?? 0) > (b?.change_percent ?? 0) ? l : b, null);
+      const direction = net === null ? "drifted" : net >= 0 ? `ended up ${net.toFixed(1)}%` : `ended down ${Math.abs(net).toFixed(1)}%`;
+      return {
+        timeline_id: id, revision, data_label: LABEL, net_change_percent: net, legs,
+        headline: net === null ? "The voyage is over" : net >= 0 ? "Fair winds: you reached port ahead" : "Battered but home: you reached port behind",
+        summary: `${LABEL}. Across ${legs.length} leg${legs.length === 1 ? "" : "s"}, your alternate market ${direction}. `
+          + (best ? `The kindest wind was “${best.text}”. ` : "") + (worst ? `The roughest storm was “${worst.text}”. ` : "")
+          + "The backend narrator will replace this mock with a sourced story of the whole journey.",
+      };
     },
 
     async reveal(id: string, revision: number): Promise<RevealResponse> {
