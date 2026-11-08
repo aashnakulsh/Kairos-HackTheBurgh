@@ -6,6 +6,8 @@ from fastapi.responses import JSONResponse
 from api.contracts import (Capabilities, CreateTimelineRequest, InterpretRequest,
     CommitRequest, ReadyDraft, RunResponse, RevealResponse, Problem)
 from shared.fixture_service import FixtureService, FixtureError, capabilities
+from api.backend_errors import BackendError
+from api.descriptions import register_description_route
 
 
 def create_app():
@@ -27,6 +29,17 @@ def create_app():
             reason="Request does not match the API schema", choices=[], current_revision=None, retryable=False).model_dump())
 
     errors = {code: {"model": Problem} for code in (404, 409, 410, 422, 503)}
+
+    class DisabledDescriptions:
+        def generate(self, context):
+            raise BackendError(503, "unavailable", "description_not_configured",
+                "Fixture-only server never calls OpenAI; use api.app for descriptions")
+
+    @app.exception_handler(BackendError)
+    async def description_error(_, exc):
+        return JSONResponse(status_code=exc.http, content=exc.problem.model_dump())
+
+    register_description_route(app, service.get, DisabledDescriptions())
 
     @app.get("/api/capabilities", response_model=Capabilities)
     def get_capabilities():

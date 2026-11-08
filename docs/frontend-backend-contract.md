@@ -1,15 +1,107 @@
 # Frontend/backend handoff — contract v1
 
-**Decision: GO WITH CONDITIONS.** Frontend implementation can start against the
-verified synthetic fixtures and local fixture API. The live backend is not ready.
-This specification resolves the pasted team requirements against architecture.md;
-no Google Doc URL was supplied and the proposed file was absent before this review.
+**Current runtime:** `api.app:create_app` supplies the durable fixture/research API;
+`api.fixture_app:app` remains a synthetic, in-memory handoff. The full React app is
+in the separate frontend worktree, with its integration preserved in
+`integration/frontend-research.patch`. The review history below describes earlier
+milestones; the current description flow here supersedes older narration ownership.
 
 The runtime schema source is `api/contracts.py`; generated copies are
 `shared/contracts.schema.json`, `shared/openapi.json` and
-`web/src/generated/contracts.ts`. All three must be regenerated together. This is
-the pre-release v1 handoff; existing placeholder examples/types have changed. No
-running deployed client or server was found. Aashna reviews shared contract changes.
+`web/src/generated/contracts.ts`. Regenerate all three with
+`python tools/export_contracts.py`; do not edit the generated copies manually.
+
+## Forecast → frontend → OpenAI → frontend
+
+The browser orchestrates a **separate description request after a successful forecast**:
+
+1. Interpret/commit a scenario as usual. Commit returns numeric `series.points` immediately;
+   it does not call OpenAI. In research mode these are the validated Chronos median (`value`),
+   q10 and q90 index levels, mapped to exchange-session dates without display rounding.
+2. Apply the response using `applyRun()` so the browser has the complete saved revision.
+   Suffix responses alone may omit part of a prompt's segment.
+3. Forward the selected prompt's complete simulated segment to the description relay.
+   The relay checks the points against the immutable saved revision and adds the saved
+   assumptions, scenario context, starting level, model/base identity and source metadata.
+4. The relay calls the OpenAI Responses API with its **server-side** key. OpenAI returns
+   prose to the relay, which returns `DescriptionResponse` to the frontend.
+5. Display that prose separately from the committed forecast. Check timeline, revision,
+   run and prompt IDs before displaying it. An edit invalidates older descriptions.
+   OpenAI text never replaces points, changes assumptions, or creates a revision.
+
+```text
+Chronos → backend commit → frontend chart + raw forecast numbers
+                                  ↓ frontend POSTs those numbers
+                            backend description relay
+                                  ↓ server-side API key
+                                OpenAI
+                                  ↓ description
+                            backend relay → frontend description
+```
+
+### Description endpoint
+
+`POST /api/timelines/{timeline_id}/revisions/{revision}/description`
+
+Request `DescriptionRequest`:
+
+- `prompt_id`: stable prompt ID from that saved revision.
+- `forecast_points`: **all** simulated `Point` objects for that prompt, in saved order.
+  Include date, kind, value, q10, q90, engine and segment_id exactly as received.
+  Never send rounded chart labels, observed history, revealed actuals, or only an edit suffix.
+  The current limit is 65 points.
+
+Typed browser usage (implemented in `web/src/api/client.ts`):
+
+```ts
+import { applyRun } from "./applyRun.ts";
+import { createApi, descriptionRequest, matchesDescription } from "./client.ts";
+
+const api = createApi();
+const committed = await api.commit(timelineId, commitRequest);
+if ("revision" in committed) {
+  const full = applyRun(previousRun, committed, commitRequest.request_id);
+  // Install full in chart state now; narration must not block it.
+  const description = await api.describe(full.timeline_id, full.revision,
+    descriptionRequest(full, selectedPromptId));
+  // Compare against the CURRENT run/selection when this asynchronous response arrives.
+  if (matchesDescription(currentRun, currentPromptId, description)) {
+    // Display description.description as plain text in the description panel.
+  }
+}
+```
+
+Response `DescriptionResponse` has `timeline_id`, `revision`, `run_id`, `prompt_id`,
+`description` (plain text), `provider: "openai"` and the configured `model` ID.
+No credentials are returned. The existing `panels` remain usable as basic fallback
+text; generated descriptions are separate browser state, not persisted panel edits.
+The integrated UI requests the focused/selected prompt after commit/restore, caches
+successful descriptions for that revision during the browser session, and cancels or
+ignores obsolete requests. Reload may request a new description; prose can differ.
+
+Errors use `Problem`: 404 for missing timeline/revision/prompt; 409 `forecast_mismatch`
+for altered, reordered or incomplete points; 422 for invalid bodies; 503
+`description_not_configured` for missing server credentials/model or
+`description_unavailable` for provider/network/timeout/refusal/incomplete-output failures.
+A narration failure keeps the graph and basic description. There are no automatic
+provider retries, no numerical rerun and no change to timeline state. The fixture-only
+server exposes the same route but always returns 503 after validating the saved segment;
+it never makes provider calls, even if credentials exist in its environment.
+
+Enable narration on the durable app by exporting `OPENAI_API_KEY`, `OPENAI_MODEL`
+(an available text model in your API project), and optionally
+`OPENAI_DESCRIPTION_TIMEOUT_SECONDS=20` before server startup. `.env.example` is
+reference only; it is not loaded automatically. Never put keys in `VITE_*` variables.
+Each uncached description request can incur an OpenAI API call; the implementation
+uses `store: false`, a bounded output and one attempt. No live paid call was required
+for local verification.
+
+OpenAI receives the forwarded forecast points plus saved context, not revealed actuals
+or the full raw market dataset. Source metadata is not source passage text; the narrator
+is instructed to describe supplied numbers and assumptions without inventing causal
+explanations, industry impacts or citations. OpenAI's [Responses text guide](https://developers.openai.com/api/docs/guides/text)
+and [API key guidance](https://developers.openai.com/api/docs/guides/api-keys) document
+the provider interface and server-side credential handling.
 
 ## 1. Inventory and exact conflicts resolved
 
@@ -17,7 +109,7 @@ running deployed client or server was found. Aashna reviews shared contract chan
 |---|---|---|
 | Pasted Doc: “Every month is a datapoint”; architecture §4 and old `api/contracts.py:Series.frequency` | Monthly chart points would hide the five-session forecast and misalign CPI announcement dates | Wire series is ordered **trading-session** data. Month/year labels and viewport settings are display concerns; do not aggregate forecast inputs into monthly shocks |
 | Pasted Doc: graphs “for each company”; architecture §6 | No company price producer, approved datasets or models exist | v1 supplies one SPY series and typed direct/indirect impacts. No company graphs promised; adding them is a separately scoped product extension |
-| Pasted Doc: “OpenAI thing from Frontend”; architecture §§1,4,8 | Browser credentials and independently parsed inputs would bypass server validation | Browser sends raw text to `/interpret`; only backend calls OpenAI or local Ollama. Both return `ParsedScenario`, then backend validates calendar, units, references and coverage |
+| Frontend-initiated OpenAI descriptions; architecture §§1,4,8 | Parsing and narration have different inputs and responsibilities | Browser sends scenario text to `/interpret`; after commit it forwards raw forecast points to `/description`. The description relay calls OpenAI using a server key and returns prose; interpretation remains independently validated |
 | Pasted Doc: prompt number may be zero-indexed; architecture §3 | Reordering dates would make array positions identify the wrong prompt | Use opaque stable `id` in commands; immutable one-based `display_number` is presentation only; `creation_order` breaks ties |
 | Pasted Doc: timeframe in years | Ambiguous whether viewport or economic intervention | Year settings are local `Viewport`, default 1980–2026. Requested scenario dates come from raw text and returned instruction; a bare year needs release/rule clarification |
 | Old `api/contracts.py` / `shared/README.md` | Missing create, capabilities, draft, reveal and model payloads; arbitrary strings for dates; no quantile/unit checks | Added types, validators, examples, OpenAPI and fixture routes; optional interpret fields now have defaults; null output fields remain explicit |
@@ -145,8 +237,10 @@ Problem and never creates that revision automatically.
 
 ## 5. Backend/model boundary
 
-Browser never calls a model. No event key is needed for this audit. `.env.example`
-contains only empty/example values; fixture server ignores provider configuration.
+Browser initiates OpenAI narration through the description relay documented above.
+Provider credentials and the actual OpenAI HTTP call stay on the server. Parsing and
+numerical inference remain backend responsibilities. `.env.example` contains only
+empty/example values; the fixture-only server never calls providers.
 
 **Parser:** primary server-side OpenAI Responses API; architecture default model
 `gpt-6-luna` subject to account access. Both primary and local Qwen/Ollama must produce
@@ -187,8 +281,9 @@ bands must say conditional on preceding simulated median. On a model deadline/fa
 use the disclosed empirical fallback only within its supported five-session range;
 represent unavailable tail as gaps or unsupported. Never silently extend it. A provisional
 30-second forecast deadline is configurable and needs host measurement; no live behavior
-is asserted. Narration is a separate call with deterministic text fallback. Its numbers
-cannot alter forecast/impact values. Unsupported impacts stay qualitative.
+is asserted. Narration is initiated by a separate frontend POST after the numeric commit. The
+existing basic panel text remains the fallback. Narration cannot alter forecast/impact
+values. Unsupported impacts stay qualitative.
 
 ## 6. Reproduce and acceptance evidence
 

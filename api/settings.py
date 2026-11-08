@@ -18,6 +18,10 @@ class Settings:
         "OLLAMA_BASE_URL", "http://127.0.0.1:11434"))
     ollama_model: str = field(default_factory=lambda: os.environ.get("OLLAMA_MODEL", "qwen3.5:9b"))
     forecast_device: str = field(default_factory=lambda: os.environ.get("FORECAST_DEVICE", "cpu"))
+    openai_api_key: str = field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", ""), repr=False)
+    openai_model: str = field(default_factory=lambda: os.environ.get("OPENAI_MODEL", ""))
+    description_timeout_seconds: float = field(default_factory=lambda: float(os.environ.get(
+        "OPENAI_DESCRIPTION_TIMEOUT_SECONDS", "20")))
 
     def __post_init__(self):
         object.__setattr__(self, "data_dir", Path(self.data_dir).expanduser())
@@ -26,6 +30,8 @@ class Settings:
         object.__setattr__(self, "sqlite_path", Path(database).expanduser())
         if self.draft_ttl_seconds <= 0:
             raise ValueError("Draft lifetime must be positive")
+        if not 0 < self.description_timeout_seconds <= 120:
+            raise ValueError("Description timeout must be between zero and 120 seconds")
         if self.app_mode not in {"fixture", "research"}:
             raise ValueError("APP_MODE must be fixture or research")
         if self.app_mode == "research":

@@ -47,6 +47,18 @@ CPU is explicit; no Apple-only dependency or acceleration is required. Windows a
 Linux execution have **not** been verified. If activation is restricted, invoke
 `.venv\Scripts\python.exe` directly instead of changing execution policy.
 
+## OpenAI descriptions after the forecast
+
+The research API still returns Chronos numeric points immediately. The frontend
+then forwards the selected prompt's complete, unrounded simulated segment to the
+new description relay, which calls OpenAI with a server-side key and returns prose
+to the frontend. Descriptions never modify the saved chart or feed back into replay.
+Export `OPENAI_API_KEY` and an available `OPENAI_MODEL` before backend startup to
+enable this optional stage; `OPENAI_DESCRIPTION_TIMEOUT_SECONDS` defaults to 20.
+Without configuration the relay returns a typed 503 and the basic panel/forecast
+remains usable. The frontend integration patch includes the caller and display.
+See [the exact API flow and request fields](frontend-backend-contract.md#forecast--frontend--openai--frontend).
+
 ## Run the research API
 
 The inputs and weights already present on this Mac are sufficient. From the
@@ -307,7 +319,7 @@ The analogue row uses a different subset and is not a comparable leaderboard. Th
 
 ## Frontend integration and manual browser check
 
-The remote `frontend` branch was inspected at `f272c22` in a separate detached worktree, `/private/tmp/teamrelay-frontend-integration`. The backend checkout stays on `backend`. Six frontend files were adjusted locally: server prompt limits/presets, separate mock/server stored timeline IDs, unsupported reveal handling, stale-reveal guards, hiding unsupported deletion, and configurable development proxy. No wire schemas changed.
+The remote `frontend` branch was inspected at `f272c22` in a separate detached worktree, `/private/tmp/teamrelay-frontend-integration`. The backend checkout stays on `backend`. Eight frontend files are adjusted locally, including the generated description types and mock API boundary: server prompt limits/presets, separate mock/server stored timeline IDs, unsupported reveal handling, stale-reveal guards, hiding unsupported deletion, configurable development proxy, and frontend-initiated OpenAI descriptions. The description request/response types and endpoint are additive wire changes; existing run payloads are unchanged.
 
 A portable copy of these changes is stored in `integration/frontend-research.patch`. It targets the frontend commit above and is not applied to the backend's minimal web directory. To apply in another frontend checkout after inspecting its working tree:
 

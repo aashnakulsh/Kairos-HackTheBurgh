@@ -5,6 +5,94 @@
     "version": "1"
   },
   "paths": {
+    "/api/timelines/{timeline_id}/revisions/{revision}/description": {
+      "post": {
+        "summary": "Forward saved forecast numbers to OpenAI for a separate description",
+        "operationId": "describe_api_timelines__timeline_id__revisions__revision__description_post",
+        "parameters": [
+          {
+            "name": "timeline_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Timeline Id"
+            }
+          },
+          {
+            "name": "revision",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Revision"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DescriptionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DescriptionResponse"
+                }
+              }
+            }
+          },
+          "404": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Not Found"
+          },
+          "409": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Conflict"
+          },
+          "422": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Unprocessable Content"
+          },
+          "503": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Problem"
+                }
+              }
+            },
+            "description": "Service Unavailable"
+          }
+        }
+      }
+    },
     "/api/capabilities": {
       "get": {
         "summary": "Get Capabilities",
@@ -731,6 +819,84 @@
           "request_id"
         ],
         "title": "CreateTimelineRequest"
+      },
+      "DescriptionRequest": {
+        "properties": {
+          "prompt_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Prompt Id"
+          },
+          "forecast_points": {
+            "items": {
+              "$ref": "#/components/schemas/Point"
+            },
+            "type": "array",
+            "maxItems": 65,
+            "minItems": 1,
+            "title": "Forecast Points"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "prompt_id",
+          "forecast_points"
+        ],
+        "title": "DescriptionRequest",
+        "description": "Frontend forwards a complete saved segment without rounding its numbers."
+      },
+      "DescriptionResponse": {
+        "properties": {
+          "timeline_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Timeline Id"
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 1.0,
+            "title": "Revision"
+          },
+          "run_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Run Id"
+          },
+          "prompt_id": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Prompt Id"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 6000,
+            "minLength": 1,
+            "title": "Description"
+          },
+          "provider": {
+            "type": "string",
+            "const": "openai",
+            "title": "Provider"
+          },
+          "model": {
+            "type": "string",
+            "minLength": 1,
+            "title": "Model"
+          }
+        },
+        "additionalProperties": false,
+        "type": "object",
+        "required": [
+          "timeline_id",
+          "revision",
+          "run_id",
+          "prompt_id",
+          "description",
+          "provider",
+          "model"
+        ],
+        "title": "DescriptionResponse"
       },
       "Evidence": {
         "properties": {

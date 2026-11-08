@@ -34,6 +34,21 @@ export interface CreateTimelineRequest {
   request_id: string;
 }
 
+export interface DescriptionRequest {
+  prompt_id: string;
+  forecast_points: Array<Point>;
+}
+
+export interface DescriptionResponse {
+  timeline_id: string;
+  revision: number;
+  run_id: string;
+  prompt_id: string;
+  description: string;
+  provider: "openai";
+  model: string;
+}
+
 export interface Evidence {
   id: string;
   title: string;

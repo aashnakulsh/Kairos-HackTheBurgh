@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { applyRun } from "../web/src/api/applyRun.ts";
-import { createApi, ApiError } from "../web/src/api/client.ts";
+import { createApi, ApiError, descriptionRequest, matchesDescription } from "../web/src/api/client.ts";
 
 const fixture = name => JSON.parse(readFileSync(new URL(`../shared/fixtures/${name}.json`, import.meta.url), "utf8"));
 
@@ -57,4 +57,26 @@ test("client methods/paths/bodies and error handling match journey", async () =>
   assert.equal(pending.length, 0);
   const failure = createApi("", async () => new Response(JSON.stringify(fixture("conflict")), { status: 409 }));
   await assert.rejects(failure.commit("fixture-1", fixture("replace-first-commit")), ApiError);
+});
+
+test("description relay forwards full raw segments and identifies obsolete prose", async () => {
+  const run = fixture("restore");
+  const before = structuredClone(run);
+  const body = descriptionRequest(run, "p1");
+  assert.deepEqual(body.forecast_points, run.series.points.filter(p => p.kind === "simulated" && p.segment_id === "p1"));
+  assert.throws(() => descriptionRequest(fixture("replace-first"), "p1"));
+  const response = { timeline_id: run.timeline_id, revision: run.revision, run_id: run.run_id,
+    prompt_id: "p1", description: "A description", provider: "openai", model: "test-text-model" };
+  const api = createApi("", async (url, options) => {
+    assert.equal(url, `/api/timelines/${run.timeline_id}/revisions/${run.revision}/description`);
+    assert.equal(options.method, "POST");
+    assert.deepEqual(JSON.parse(options.body), body);
+    return new Response(JSON.stringify(response));
+  });
+  assert.deepEqual(await api.describe(run.timeline_id, run.revision, body), response);
+  assert.equal(matchesDescription(run, "p1", response), true);
+  for (const changed of [{ revision: 99 }, { timeline_id: "other" }, { run_id: "other" }, { prompt_id: "p2" }]) {
+    assert.equal(matchesDescription(run, "p1", { ...response, ...changed }), false);
+  }
+  assert.deepEqual(run, before);
 });

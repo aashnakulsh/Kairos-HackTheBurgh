@@ -2,6 +2,33 @@
 
 **Snapshot of this handover: 8 November 2026.** This file describes the repository and local Mac state at the time it was written. Processes, branches, installed packages and uncommitted files can change. A new chat should verify them before acting. Start from the repository root, `/Users/aashn/hackathon/TeamRelay-Hackathon`.
 
+## Continuation update: frontend-initiated OpenAI descriptions
+
+After the original snapshot, backend work was preserved in local commit `aa05b4b`
+(`backend implemetnaiton`). The current description changes are additional uncommitted
+work. User-approved flow: **backend numeric forecast → frontend → backend relay →
+OpenAI → relay → frontend description**. See the current
+[API contract](frontend-backend-contract.md#forecast--frontend--openai--frontend).
+
+`api/descriptions.py` and the additive `DescriptionRequest`/`DescriptionResponse`
+contracts implement `POST /api/timelines/{id}/revisions/{revision}/description`.
+The browser forwards one complete unrounded simulated segment after `applyRun`;
+the relay checks it against the saved revision before calling OpenAI. The frontend
+shows/caches the returned prose separately and ignores obsolete responses. Forecast
+commits, saved panels/revisions and actual reveal remain separate. Missing configuration
+or provider failure leaves the chart/basic panel usable. Fixture-only HTTP never calls
+OpenAI. Export `OPENAI_API_KEY`, an available `OPENAI_MODEL`, and optionally
+`OPENAI_DESCRIPTION_TIMEOUT_SECONDS=20` before starting/restarting the durable API.
+Existing running servers do not automatically pick up these source/settings changes.
+
+The separate frontend worktree now has eight edited files. Its complete current diff,
+including description orchestration/display, is preserved in
+`integration/frontend-research.patch` against the same frontend commit `f272c22`.
+Focused mocked-provider relay tests, typed frontend tests, contract/fixture validation
+and the frontend build were used for this addition. No paid OpenAI call or rendered
+browser verification was performed. No commit, push, board post, merge or deployment
+was performed for these description changes.
+
 ## Who is working and what the project does
 
 Aashna (`@aashnakulsh`) leads the project. Aditya (`@ADI-GHH`) works with Aashna **on the same MacBook and in this same repository/chat**; there is no handoff between them. Chohan (`@yimchohan`) and Orion (`@wthoreo`) built the frontend in a separate Git branch. The repository is `aashnakulsh/TeamRelay-Hackathon`; pinned issue [#1, Message Board](https://github.com/aashnakulsh/TeamRelay-Hackathon/issues/1), is for coordination, not task authorization. Read [AGENTS.md](../AGENTS.md) before doing work. Its focus areas are flexible. Only one editing agent should use a working folder at a time. The team has repeatedly instructed the agent **not to commit, push, post, merge or deploy** without a new explicit instruction. This handover does not grant publication permission.

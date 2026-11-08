@@ -9,6 +9,21 @@
 | Prices, releases, Chronos-2, evidence or evaluation | §4, §6 and §7 | Aditya and Aashna |
 | Integration, judging or release | §1, §8 and §9 | All four |
 
+## Current narration flow (8 November update)
+
+The frontend receives raw, unrounded forecast points with the committed run and
+renders the chart first. It then forwards the selected prompt's complete simulated
+segment to `POST /api/timelines/{id}/revisions/{revision}/description`. The backend
+relay validates those numbers against the saved revision, calls OpenAI using a
+server-side key, and returns the description to the frontend. This is independent
+of interpretation, forecasting, replay and actual-history reveal. Late prose is
+ignored if its timeline/revision/run/prompt identity no longer matches the UI.
+Existing panel text stays visible if narration is unavailable. See the
+[API contract](frontend-backend-contract.md#forecast--frontend--openai--frontend)
+for exact fields, errors and configuration. This supersedes the earlier plan for
+narration to run as part of backend run assembly. It does not implement the planned
+OpenAI/Ollama prompt parser or local narrative fallback.
+
 ## 1. Boundaries and ownership
 
 Use one React/TypeScript/Vite frontend with Plotly.js, one Python FastAPI backend, one local SQLite database with FTS5 search, and versioned Parquet inputs. The browser sends commands and displays results. The backend owns dates, prompt meaning, timeline ordering, forecast numbers, evidence and numerical attribution. Package the frontend and backend together for judging. The repo and issue below identify the team's coordination point.
@@ -25,6 +40,9 @@ This is the proposed split inside the flexible focus areas supplied by the team.
 ```mermaid
 flowchart TD
     UI["Browser · prompt, timeline and chart"] --> API["FastAPI · interpret, commit and replay"]
+    UI --> RELAY["Description relay · frontend forwards saved forecast numbers"]
+    RELAY --> OPEN
+    RELAY --> UI
     API --> DB["SQLite · revisions, checkpoints and evidence"]
     API --> TEXT["Parser and narrative adapters"]
     TEXT --> OPEN["OpenAI Responses API"]
@@ -85,7 +103,7 @@ If only `p2` changes, every point before July 15, including June's simulated mar
 | `EvidenceStore` | SQLite FTS5 retrieves licensed passages by economic lever, exposure and publication date. Store source ID, publisher, passage location, version and release timestamp. Use passages available by the scenario cutoff; exclude later retrospective material from as-of explanations. Treat documents as evidence. A retrieved passage cannot change application rules, call tools or override a user assumption. |
 | `Forecaster` | Use pretrained **`amazon/chronos-2`** as the primary numerical engine. Python package `chronos-forecasting`; use `Chronos2Pipeline.from_pretrained("amazon/chronos-2", device_map="cpu")` for a portable first run. Supply historical target and aligned covariates plus the assumed future covariates for the current segment via `predict_df`. Request quantiles 0.1, 0.5 and 0.9. Cache weights and warm the pipeline once per backend process. [Model card and Apache 2.0 license](https://huggingface.co/amazon/chronos-2) · [GitHub quickstart](https://github.com/amazon-science/chronos-forecasting/blob/main/notebooks/chronos-2-quickstart.ipynb) |
 | `Baseline` | Reference = distribution of completed earlier CPI-release windows over the same five-session horizon. Also implement the original nearest-analogue estimate using the difference from the previously published CPI reading. Display dates, sample count and matching tolerance. Use a versioned threshold fixed before evaluation (initial analogue floor: eight distinct releases). Label the actual engine used. If Chronos fails, the analogue fallback may produce its supported five-session forecast; surface gaps beyond that horizon. |
-| `Narrator` | Reuse the primary/fallback LLM pair in a **separate call**. Supply frozen passages, resolved assumptions, backend metrics and typed impacts. Ask for one plain market summary and one or two clearly labeled speculative mechanisms. Allow expressive prose here. Set temperature only on a provider/model that supports it for that call, otherwise vary wording through the instruction. Strict parsing is independent. A timeout returns a deterministic description from verified fields. No prose-generated number enters the chart or impact percentages. |
+| `Narrator` | **Current implementation:** frontend forwards saved forecast points to the backend description relay after commit; the relay calls OpenAI and returns plain prose to the frontend. Server credentials stay private. Basic panel text is the fallback; local narration and richer evidence are future work. **Longer-term design:** reuse the primary/fallback LLM pair in a separate call. Supply frozen passages, resolved assumptions, backend metrics and typed impacts. Ask for one plain market summary and one or two clearly labeled speculative mechanisms. Allow expressive prose here. Set temperature only on a provider/model that supports it for that call, otherwise vary wording through the instruction. Strict parsing is independent. A timeout returns a deterministic description from verified fields. No prose-generated number enters the chart or impact percentages. |
 | `ReplayCoordinator` | Resolves the event log into segments, drives forecasting, computes `changed_from`, persists checkpoints, and assembles one versioned view. Use the same target, base and economic instructions whichever parser was selected. Quantitative LLM weight in this release is zero. |
 
 **Numerical path.** Start with a single US-listed equity proxy such as SPY, one versioned eligible daily price feed, and seasonally adjusted headline month-on-month CPI-U. Record prices and CPI in separate units. Use one fixed base for the displayed index across the timeline and its edits, e.g. first eligible close in the pinned dataset = 100. Derive an indexed **level** series before inference so output quantiles correspond to displayed levels without compounding independent marginal return quantiles. Pass an explicit release indicator and latest as-released CPI reading on a regular trading-session index. Encode session numbers on a regular model grid and map them back to actual exchange sessions for display. Missing closes remain missing or exclude the affected window under the manifest's policy. Carry the latest known reading forward across non-release sessions with the release indicator set to zero. At a hypothetical release, change the reading exactly once and set the indicator to one. If a later release falls inside the horizon with no instruction, explicitly assume the previous reading carries forward and identify that assumption in the panel. Build the event calendar from information known at the fork or user-supplied dates. Never treat monthly CPI values as daily percentage shocks.

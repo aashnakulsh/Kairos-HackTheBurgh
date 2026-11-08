@@ -179,6 +179,84 @@
       "title": "CreateTimelineRequest",
       "type": "object"
     },
+    "DescriptionRequest": {
+      "additionalProperties": false,
+      "description": "Frontend forwards a complete saved segment without rounding its numbers.",
+      "properties": {
+        "prompt_id": {
+          "minLength": 1,
+          "title": "Prompt Id",
+          "type": "string"
+        },
+        "forecast_points": {
+          "items": {
+            "$ref": "#/$defs/Point"
+          },
+          "maxItems": 65,
+          "minItems": 1,
+          "title": "Forecast Points",
+          "type": "array"
+        }
+      },
+      "required": [
+        "prompt_id",
+        "forecast_points"
+      ],
+      "title": "DescriptionRequest",
+      "type": "object"
+    },
+    "DescriptionResponse": {
+      "additionalProperties": false,
+      "properties": {
+        "timeline_id": {
+          "minLength": 1,
+          "title": "Timeline Id",
+          "type": "string"
+        },
+        "revision": {
+          "minimum": 1,
+          "title": "Revision",
+          "type": "integer"
+        },
+        "run_id": {
+          "minLength": 1,
+          "title": "Run Id",
+          "type": "string"
+        },
+        "prompt_id": {
+          "minLength": 1,
+          "title": "Prompt Id",
+          "type": "string"
+        },
+        "description": {
+          "maxLength": 6000,
+          "minLength": 1,
+          "title": "Description",
+          "type": "string"
+        },
+        "provider": {
+          "const": "openai",
+          "title": "Provider",
+          "type": "string"
+        },
+        "model": {
+          "minLength": 1,
+          "title": "Model",
+          "type": "string"
+        }
+      },
+      "required": [
+        "timeline_id",
+        "revision",
+        "run_id",
+        "prompt_id",
+        "description",
+        "provider",
+        "model"
+      ],
+      "title": "DescriptionResponse",
+      "type": "object"
+    },
     "Evidence": {
       "additionalProperties": false,
       "properties": {
@@ -1729,6 +1807,12 @@
     },
     "forecast_result": {
       "$ref": "#/$defs/ForecastResult"
+    },
+    "description_request": {
+      "$ref": "#/$defs/DescriptionRequest"
+    },
+    "description_response": {
+      "$ref": "#/$defs/DescriptionResponse"
     }
   },
   "required": [
@@ -1742,7 +1826,9 @@
     "reveal",
     "parser",
     "forecast_request",
-    "forecast_result"
+    "forecast_result",
+    "description_request",
+    "description_response"
   ],
   "title": "ContractBundle",
   "type": "object"

@@ -1,17 +1,29 @@
 diff --git a/web/src/App.tsx b/web/src/App.tsx
-index aed6898..671debb 100644
+index aed6898..b195ee5 100644
 --- a/web/src/App.tsx
 +++ b/web/src/App.tsx
-@@ -42,7 +42,7 @@ export function App() {
+@@ -22,6 +22,11 @@ export function App() {
+   const prompts = ws.run?.prompts ?? [];
+   const shownId = ws.selectedId ?? ws.focusId;
+   const shown = prompts.find(p => p.id === shownId);
++  const originalPanel = shown && ws.run?.panels[shown.id];
++  const matchingDescription = ws.description?.timeline_id === ws.run?.timeline_id &&
++    ws.description?.revision === ws.run?.revision && ws.description?.prompt_id === shownId ? ws.description : null;
++  const shownPanel = originalPanel && matchingDescription
++    ? { ...originalPanel, summary: matchingDescription.description } : originalPanel;
+   const points = ws.run?.series.points ?? [];
+   const trend = segmentTrend(points, shown?.id ?? null);
+   const replacing = prompts.find(p => p.id === ws.selectedId)?.display_number ?? null;
+@@ -42,7 +47,7 @@ export function App() {
    };
- 
+
    const composer = (
 -    <Composer text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
 +    <Composer maxPrompts={ws.caps?.max_prompts} presets={ws.caps?.fixture_presets} text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
        onChange={ws.setText} onSubmit={submit} onCancel={ws.cancelSelection} />
    );
- 
-@@ -51,6 +51,7 @@ export function App() {
+
+@@ -51,6 +56,7 @@ export function App() {
        <main className="intro">
          <h1 className="visually-hidden">US Market What If?</h1>
          {composer}
@@ -19,7 +31,7 @@ index aed6898..671debb 100644
          {ws.capsFailed && <p className="intro-error">Couldn't reach the server. <button type="button" className="button button-quiet" onClick={ws.loadCaps}>Retry</button></p>}
        </main>
      );
-@@ -67,7 +68,7 @@ export function App() {
+@@ -67,16 +73,22 @@ export function App() {
          <span className="data-label">{ws.run?.data_label ?? ws.caps?.data_label}</span>
          {ws.caps && <span>Data {ws.caps.coverage.first_session} to {ws.caps.coverage.last_session}</span>}
          <button type="button" className="button button-quiet" onClick={ws.toggleReveal} aria-pressed={ws.reveal !== null}
@@ -28,9 +40,17 @@ index aed6898..671debb 100644
            {ws.reveal ? "Hide actual history" : "Reveal actual history"}
          </button>
        </header>
-@@ -76,7 +77,7 @@ export function App() {
-           ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} />
+       <section className="stage">
+         {selected
+-          ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} />
++          ? <NarrativePanel prompt={selected} panel={shownPanel} trend={trends[selected.id]} />
            : !!prompts.length && <NoteRow prompts={prompts} trends={trends} onSelect={ws.selectPrompt} />}
++        {shown && <aside aria-label="Forecast description" aria-live="polite">
++          {!selected && <p>{matchingDescription?.description ?? originalPanel?.summary}</p>}
++          {ws.descriptionPending && <p>Writing description with OpenAI…</p>}
++          {ws.descriptionError && <p>{ws.descriptionError}</p>}
++          {matchingDescription && <small>Description by OpenAI · {matchingDescription.model}</small>}
++        </aside>}
          <Chart run={ws.run} draw={ws.draw} viewport={ws.viewport} selectedId={ws.selectedId} playhead={ws.playhead}
 -          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.deletePrompt} />
 +          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.canDelete ? ws.deletePrompt : undefined} />
@@ -38,17 +58,70 @@ index aed6898..671debb 100644
            onViewportChange={ws.setViewport} onPlayheadChange={ws.setPlayhead} />
        </section>
 diff --git a/web/src/api/client.ts b/web/src/api/client.ts
-index d47e7ee..912d091 100644
+index d47e7ee..df6ab11 100644
 --- a/web/src/api/client.ts
 +++ b/web/src/api/client.ts
-@@ -42,6 +42,6 @@ export function createApi(baseUrl = "", fetcher: typeof fetch = fetch) {
+@@ -1,4 +1,4 @@
+-import type { Capabilities, CommitRequest, CreateTimelineRequest, InterpretRequest,
++import type { Capabilities, CommitRequest, CreateTimelineRequest, DescriptionRequest, DescriptionResponse, InterpretRequest,
+   Problem, ReadyDraft, RevealResponse, RunResponse } from "../generated/contracts.ts";
+
+ export class ApiError extends Error {
+@@ -11,6 +11,19 @@ export class ApiError extends Error {
+   }
+ }
+
++/** Call only after applyRun has reconstructed a full revision, never with rounded chart values. */
++export function descriptionRequest(run: RunResponse, promptId: string): DescriptionRequest {
++  if (run.series_mode !== "full") throw new Error("Apply the forecast suffix before requesting a description");
++  const forecast_points = run.series.points.filter(p => p.kind === "simulated" && p.segment_id === promptId);
++  if (!forecast_points.length) throw new Error("No forecast segment for this prompt");
++  return { prompt_id: promptId, forecast_points: structuredClone(forecast_points) };
++}
++
++export function matchesDescription(run: RunResponse, promptId: string, response: DescriptionResponse): boolean {
++  return response.timeline_id === run.timeline_id && response.revision === run.revision &&
++    response.run_id === run.run_id && response.prompt_id === promptId;
++}
++
+ /** Delete one active prompt (architecture §5). shortcut: hand-written until api/contracts.py defines it. */
+ export interface DeletePromptRequest {
+   prompt_id: string;
+@@ -19,7 +32,8 @@ export interface DeletePromptRequest {
+ }
+
+ /** Same-origin /api in production; http://127.0.0.1:8000 for local fixture mode.
+- * No provider keys, OpenAI calls or automatic write retries belong in the browser.
++ * The browser forwards forecast numbers to the description relay; provider keys stay on the server.
++ * No direct OpenAI calls or automatic write retries belong in the browser.
+  * Types are compile-time only; HTTP response conformance is checked by the server.
+  */
+ export function createApi(baseUrl = "", fetcher: typeof fetch = fetch) {
+@@ -41,7 +55,9 @@ export function createApi(baseUrl = "", fetcher: typeof fetch = fetch) {
+     revision: (id: string, revision: number) => call<RunResponse>(`${timeline(id)}/revisions/${revision}`),
      interpret: (id: string, body: InterpretRequest, signal?: AbortSignal) => call<ReadyDraft | Problem>(`${timeline(id)}/interpret`, body, signal),
      commit: (id: string, body: CommitRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/commit`, body, signal),
++    describe: (id: string, revision: number, body: DescriptionRequest, signal?: AbortSignal) =>
++      call<DescriptionResponse>(`${timeline(id)}/revisions/${revision}/description`, body, signal),
      deletePrompt: (id: string, body: DeletePromptRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/delete`, body, signal),
 -    reveal: (id: string, revision: number, signal?: AbortSignal) => call<RevealResponse>(`${timeline(id)}/revisions/${revision}/reveal`, undefined, signal),
 +    reveal: (id: string, revision: number, signal?: AbortSignal) => call<RevealResponse | Problem>(`${timeline(id)}/revisions/${revision}/reveal`, undefined, signal),
    };
  }
+diff --git a/web/src/api/mockApi.ts b/web/src/api/mockApi.ts
+index 11ab837..2ded372 100644
+--- a/web/src/api/mockApi.ts
++++ b/web/src/api/mockApi.ts
+@@ -119,6 +119,9 @@ export function createMockApi(): ReturnType<typeof createApi> {
+   }
+
+   return {
++    async describe(): Promise<never> {
++      throw new ApiError(503, problem("unavailable", "description_not_configured", "Mock mode never calls OpenAI"));
++    },
+     async capabilities(): Promise<Capabilities> {
+       return {
+         contract_version: "1", mode: "fixture", data_label: LABEL, targets: ["SPY"], unit: "index", frequency: "trading_session",
 diff --git a/web/src/features/chart/Chart.tsx b/web/src/features/chart/Chart.tsx
 index d84dde5..1c707e3 100644
 --- a/web/src/features/chart/Chart.tsx
@@ -60,7 +133,7 @@ index d84dde5..1c707e3 100644
 -  onDeletePrompt: (id: string) => void;
 +  onDeletePrompt?: (id: string) => void;
  }
- 
+
  const only = (points: Point[], keep: (p: Point, next: Point | undefined) => boolean, field: "value" | "q10" | "q90" = "value") =>
 @@ -150,8 +150,8 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
                {m.label}
@@ -79,7 +152,7 @@ index cc174e7..0e5238b 100644
 +++ b/web/src/features/workspace/Composer.tsx
 @@ -3,6 +3,8 @@ import type { Notice } from "./useWorkspace.ts";
  import { MAX_PROMPTS } from "../../config.ts";
- 
+
  export interface ComposerProps {
 +  maxPrompts?: number;
 +  presets?: string[];
@@ -88,12 +161,12 @@ index cc174e7..0e5238b 100644
    /** Active prompts, or null before the workspace opens. */
 @@ -16,7 +18,7 @@ export interface ComposerProps {
  }
- 
+
  /** Enter submits, Shift+Enter adds a line, Escape cancels a replacement. */
 -export function Composer({ text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
 +export function Composer({ maxPrompts = MAX_PROMPTS, presets = [], text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
    const ref = useRef<HTMLTextAreaElement>(null);
- 
+
    // Selecting a marker brings the composer into view with the old text ready to edit.
 @@ -43,15 +45,16 @@ export function Composer({ text, replacing, count, pending, notice, reducedMotio
      <form className="composer" data-replacing={replacing !== null || undefined}
@@ -116,34 +189,76 @@ index cc174e7..0e5238b 100644
          {pending && <span className="composer-pending">{pending}…</span>}
          {notice && (
 diff --git a/web/src/features/workspace/useWorkspace.ts b/web/src/features/workspace/useWorkspace.ts
-index 63f1567..8223d45 100644
+index 63f1567..8c1d27b 100644
 --- a/web/src/features/workspace/useWorkspace.ts
 +++ b/web/src/features/workspace/useWorkspace.ts
-@@ -8,7 +8,8 @@ import type { ChartProps } from "../chart/Chart.tsx";
- 
+@@ -1,14 +1,16 @@
+ import { useEffect, useRef, useState } from "react";
+ import { applyRun } from "../../api/applyRun.ts";
+-import { ApiError, createApi, type DeletePromptRequest } from "../../api/client.ts";
++import { ApiError, createApi, descriptionRequest, matchesDescription, type DeletePromptRequest } from "../../api/client.ts";
+ import { MAX_PROMPTS } from "../../config.ts";
+ import { createMockApi } from "../../api/mockApi.ts";
+-import type { Capabilities, CommitRequest, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
++import type { Capabilities, CommitRequest, DescriptionResponse, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
+ import type { ChartProps } from "../chart/Chart.tsx";
+
  // shortcut: the in-browser mock is the default until the OpenAI parser lands; VITE_API=server uses the HTTP API.
- const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
+-const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
 -const STORAGE_KEY = "teamrelay.timeline_id";
++const serverApi = createApi();
++const api = import.meta.env.VITE_API === "server" ? serverApi : createMockApi();
 +const serverMode = import.meta.env.VITE_API === "server";
 +const STORAGE_KEY = `teamrelay.${serverMode ? "server" : "mock"}.timeline_id`;
- 
+
  export interface Notice {
    tone: "error" | "info";
-@@ -43,11 +44,13 @@ export function useWorkspace() {
- 
+@@ -41,13 +43,44 @@ export function useWorkspace() {
+   const [playhead, setPlayhead] = useState<string | null>(null);
+   const [started, setStarted] = useState(false);
+
++  const [description, setDescription] = useState<DescriptionResponse | null>(null);
++  const [descriptionPending, setDescriptionPending] = useState(false);
++  const [descriptionError, setDescriptionError] = useState<string | null>(null);
++  const descriptionCache = useRef(new Map<string, DescriptionResponse>());
++
++  // Narration starts after the committed chart is installed. It never mutates that run.
++  useEffect(() => {
++    setDescription(null);
++    setDescriptionPending(false);
++    setDescriptionError(null);
++    const promptId = selectedId ?? focusId;
++    if (!serverMode || !run || !promptId || !run.series.points.some(p => p.kind === "simulated" && p.segment_id === promptId)) return;
++    const key = JSON.stringify([run.timeline_id, run.revision, promptId]);
++    const cached = descriptionCache.current.get(key);
++    if (cached) { setDescription(cached); return; }
++    const controller = new AbortController();
++    let active = true;
++    setDescriptionPending(true);
++    serverApi.describe(run.timeline_id, run.revision, descriptionRequest(run, promptId), controller.signal).then(response => {
++      if (!active) return;
++      if (!matchesDescription(run, promptId, response)) throw new Error("Description revision mismatch");
++      descriptionCache.current.set(key, response);
++      setDescription(response);
++    }).catch(error => {
++      if (active) setDescriptionError(error instanceof ApiError ? error.problem.reason : "Description unavailable; the forecast is still available.");
++    }).finally(() => { if (active) setDescriptionPending(false); });
++    return () => { active = false; controller.abort(); };
++  }, [run, selectedId, focusId]);
++
    const runRef = useRef(run);
    const seq = useRef(0);
 +  const revealSeq = useRef(0);
    const abort = useRef<AbortController | null>(null);
    const createId = useRef(crypto.randomUUID()); // reused until creation succeeds, so a blind retry is idempotent
    const stash = useRef(""); // unsent "Add prompt" text, restored when a selection is cancelled
- 
+
    const install = (next: RunResponse, animate: boolean, from: string | null = null) => {
 +    revealSeq.current++;
      runRef.current = next;
      setRun(next);
      setReveal(null);
-@@ -130,8 +133,8 @@ export function useWorkspace() {
+@@ -130,8 +163,8 @@ export function useWorkspace() {
      const prompt = text.trim();
      if (!prompt) return;
      const replacing = selectedId;
@@ -154,7 +269,7 @@ index 63f1567..8223d45 100644
        return;
      }
      const { mine, signal } = start();
-@@ -183,7 +186,7 @@ export function useWorkspace() {
+@@ -183,7 +216,7 @@ export function useWorkspace() {
    /** Removes one prompt; only a successful response changes the graph, redrawn from the deleted prompt's start. */
    const deletePrompt = (id: string) => {
      const current = runRef.current;
@@ -163,8 +278,8 @@ index 63f1567..8223d45 100644
      const wasSelected = selectedId === id;
      const body: DeletePromptRequest = { prompt_id: id, expected_revision: current.revision, request_id: crypto.randomUUID() };
      const send = async () => {
-@@ -208,16 +211,20 @@ export function useWorkspace() {
- 
+@@ -208,16 +241,20 @@ export function useWorkspace() {
+
    /** Toggles the actual-history overlay; hiding only drops the local copy, it never touches the run. */
    const toggleReveal = () => {
 +    const mine = ++revealSeq.current;
@@ -182,13 +297,39 @@ index 63f1567..8223d45 100644
 +      if (r.timeline_id === current.timeline_id && r.revision === current.revision) setReveal(r);
 +    }, e => { if (mine === revealSeq.current) void fail(e); });
    };
- 
+
    return {
 -    caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
-+    canDelete: !serverMode, caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
++    description, descriptionPending, descriptionError, canDelete: !serverMode, caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
      pending, notice, reveal, playhead, setPlayhead, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
    };
  }
+diff --git a/web/src/generated/contracts.ts b/web/src/generated/contracts.ts
+index bc0aabf..8938f74 100644
+--- a/web/src/generated/contracts.ts
++++ b/web/src/generated/contracts.ts
+@@ -34,6 +34,21 @@ export interface CreateTimelineRequest {
+   request_id: string;
+ }
+
++export interface DescriptionRequest {
++  prompt_id: string;
++  forecast_points: Array<Point>;
++}
++
++export interface DescriptionResponse {
++  timeline_id: string;
++  revision: number;
++  run_id: string;
++  prompt_id: string;
++  description: string;
++  provider: "openai";
++  model: string;
++}
++
+ export interface Evidence {
+   id: string;
+   title: string;
 diff --git a/web/vite.config.ts b/web/vite.config.ts
 index 061eca8..f42a31f 100644
 --- a/web/vite.config.ts
@@ -197,7 +338,7 @@ index 061eca8..f42a31f 100644
 -import { defineConfig } from "vite";
 +import { defineConfig, loadEnv } from "vite";
  import react from "@vitejs/plugin-react";
- 
+
  // Same-origin /api in the browser; dev forwards it to the local fixture API (README).
 -export default defineConfig({
 +export default defineConfig(({ mode }) => ({

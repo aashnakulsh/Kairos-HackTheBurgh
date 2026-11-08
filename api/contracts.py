@@ -152,6 +152,22 @@ class Series(Contract):
         return self
 
 
+class DescriptionRequest(Contract):
+    """Frontend forwards a complete saved segment without rounding its numbers."""
+    prompt_id: ID
+    forecast_points: list[Point] = Field(min_length=1, max_length=65)
+
+
+class DescriptionResponse(Contract):
+    timeline_id: ID
+    revision: int = Field(ge=1)
+    run_id: ID
+    prompt_id: ID
+    description: str = Field(min_length=1, max_length=6000)
+    provider: Literal["openai"]
+    model: ID
+
+
 class Evidence(Contract):
     id: ID
     title: str
@@ -439,3 +455,5 @@ class ContractBundle(Contract):
     parser: ParsedScenario
     forecast_request: ForecastRequest
     forecast_result: ForecastResult
+    description_request: DescriptionRequest
+    description_response: DescriptionResponse

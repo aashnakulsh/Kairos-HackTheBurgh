@@ -8,10 +8,11 @@ from api.backend_errors import BackendError
 from api.contracts import (Capabilities, CommitRequest, CreateTimelineRequest,
     InterpretRequest, Problem, ReadyDraft, RevealResponse, RunResponse)
 from api.durable_service import DurableService
+from api.descriptions import OpenAIDescriptionProvider, register_description_route
 from api.settings import Settings
 
 
-def create_app(settings=None, *, parser=None, adapter=None, now=None):
+def create_app(settings=None, *, parser=None, adapter=None, now=None, description_provider=None):
     settings = settings or Settings()
     title = "local historical research" if settings.app_mode == "research" else "synthetic numerical adapter"
     app = FastAPI(title=f"TeamRelay durable API — {title}", version="1")
@@ -37,6 +38,7 @@ def create_app(settings=None, *, parser=None, adapter=None, now=None):
             current_revision=None, retryable=True).model_dump())
 
     errors = {code: {"model": Problem} for code in (404, 409, 410, 422, 503)}
+    register_description_route(app, service.get, description_provider or OpenAIDescriptionProvider(settings))
 
     @app.get("/api/capabilities", response_model=Capabilities)
     def get_capabilities():
