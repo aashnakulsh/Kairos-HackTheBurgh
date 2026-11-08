@@ -10,7 +10,7 @@ from data.real_market import UnsupportedInput
 
 MODEL = "amazon/chronos-2"
 REVISION = "29ec3766d36d6f73f0696f85560a422f50e8498c"
-MODEL_VERSION = f"chronos-2-2.3.2-{REVISION[:12]}-cpu-cpi-v2"
+MODEL_VERSION = f"chronos-2-2.3.2-{REVISION[:12]}-cpu-cpi-v3"
 
 
 def unsupported(engine, model_version, reason, count=0, assumptions=()):

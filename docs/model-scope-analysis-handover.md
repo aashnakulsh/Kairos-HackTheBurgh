@@ -1,5 +1,28 @@
 # TeamRelay: model scope analysis and next-chat handover
 
+> **Latest implementation:** Aashna approved the general scenario plan after the
+> continuous-CPI milestone below. Read [the general scenario handover](general-scenario-handover.md)
+> first. The new `APP_MODE=scenario` bypasses CPI-only parsing and validation:
+> OpenAI researches arbitrary events, measures analogues from local history,
+> proposes explicit covariate paths, and Chronos produces baseline/scenario paths.
+> This is real inference, not a claim that historical associations establish causality.
+> Earlier scope restrictions and live-test status below are historical.
+
+> **Implementation update — 8 November 2026, approximately 06:00 London:**
+> Aashna subsequently authorized fixes under the noon deadline. The continuous
+> CPI repair is now implemented locally in this repository, with focused tests
+> and real offline Chronos/replay checks passed. Read
+> [the current implementation and frontend handover](continuous-cpi-demo-handover.md)
+> first. It supersedes this document's analysis-only instruction, old worktree
+> states, five-case restrictions and proposed first implementation step.
+> New live OpenAI/Ollama interpretation and the rendered UI journey remain
+> unverified: execution approval for the live check was declined. No new live
+> provider call was made. The broader economic-model limitations below still apply.
+>
+> **The remainder is the historical pre-fix analysis**, retained so the diagnosis,
+> earlier evidence and limits remain reviewable. Do not follow its old next-chat
+> prompt or assume its Git/server state is current.
+
 **Prepared for Aashna and Aditya · 8 November 2026 · Europe/London.**
 
 This document answers the concern raised after the Mac live verification:

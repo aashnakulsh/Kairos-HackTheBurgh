@@ -1,4 +1,21 @@
+# Current general-scenario entry point
+For the newly approved open-ended scenario flow, start with
+[general-scenario-handover.md](general-scenario-handover.md).
+`APP_MODE=scenario` uses the full raw SPY history and local FRED CSVs, optional
+original BLS releases, on-demand GDELT context, OpenAI research and Chronos numeric
+covariate conditioning. The older CPI snapshot workflow below remains available
+as `APP_MODE=research`; it does not describe the general scenario limits.
+
 # Real-data adapter and research API
+
+> **Current implementation update (8 November 2026):** Use
+> [continuous-cpi-demo-handover.md](continuous-cpi-demo-handover.md) for startup and
+> integration. The real backend now accepts continuous validated CPI values,
+> defaults to provider parsing in research mode, and uses v3 consistent inference
+> blocks. The new launcher selects the richer existing snapshot. Earlier sections
+> describing five allowed presets, a deterministic-only parser, v2 identity or
+> specific running ports are historical; the underlying data/provenance details
+> remain relevant.
 
 Aashna and Aditya are working together in this chat, folder and `backend` branch.
 The bounded June–August three-prompt real-data path now works through the durable HTTP API as well as

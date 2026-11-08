@@ -9,6 +9,7 @@ from decimal import Decimal
 from api.backend_errors import BackendError
 from api.contracts import ForecastRequest, ForecastResult, HistoryRow, Prompt, RunResponse
 from api.synthetic_forecast import LABEL
+from api.cpi_domain import MIN_CPI, MAX_CPI
 from shared.fixture_service import SESSIONS, point
 
 
@@ -60,6 +61,9 @@ def candidate(old, draft, request_id, adapter, context=None):
                     "Reference must precede this prompt", old["revision"])
             reading = ref + (Decimal(str(p["value"])) if p["operation"] == "add_pp" else 0)
         p["resolved_value"] = float(reading)
+        if context and not MIN_CPI <= reading <= MAX_CPI:
+            raise BackendError(200, "unsupported", "resolved_cpi_out_of_range",
+                f"{p['id']} resolves to {reading}% monthly CPI, outside -2% to 2%. Adjust the level or relative change.", old["revision"])
         resolved[p["id"]] = preceding = reading
 
     first = prompts[0]["effective_start"]
@@ -108,6 +112,19 @@ def candidate(old, draft, request_id, adapter, context=None):
             groups.append((active, []))
         groups[-1][1].append(dict(date=day, cpi_percent=active["resolved_value"],
             release_indicator=int(day == active["effective_start"])))
+    if context:
+        # Anchor inference blocks to each release, independent of whether the user
+        # appended events or edited the first event. Otherwise a 5-session forecast
+        # plus a bridge differs from forecasting the same whole interval in one call.
+        blocks = []
+        for active, future in groups:
+            offset = session_grid.index(future[0]["date"]) - session_grid.index(active["effective_start"])
+            while future:
+                size = 5 - offset % 5
+                blocks.append((active, future[:size]))
+                offset += len(future[:size])
+                future = future[size:]
+        groups = blocks
     panels = deepcopy(old["panels"])
     for active, future in groups:
         forecast_request = ForecastRequest(target_id=old["series"]["target_id"], segment_id=active["id"],

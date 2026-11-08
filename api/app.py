@@ -14,7 +14,7 @@ from api.settings import Settings
 
 def create_app(settings=None, *, parser=None, adapter=None, now=None, description_provider=None):
     settings = settings or Settings()
-    title = "local historical research" if settings.app_mode == "research" else "synthetic numerical adapter"
+    title = "local historical research" if settings.app_mode in {"research", "scenario"} else "synthetic numerical adapter"
     app = FastAPI(title=f"TeamRelay durable API — {title}", version="1")
     service = DurableService(settings, parser=parser, adapter=adapter, now=now)
     app.state.backend_service = service

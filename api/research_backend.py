@@ -10,12 +10,13 @@ import json
 from api.backend_errors import BackendError
 from api.contracts import Capabilities, Evidence, Instruction, RunResponse
 from api.preset_parser import PresetParser
+from api.cpi_domain import instruction_error
 from api.replay import candidate as replay_candidate
 from shared.fixture_service import PRESETS
 from data.real_market import CUTOFF, DATES, MarketInputs
 from training.chronos_adapter import ChronosAdapter, MODEL_VERSION
 
-LABEL = "Local historical research — IEX SPY data with conditional Chronos-2 forecasts"
+LABEL = "SPY / monthly headline CPI scenarios — continuous inputs (-2% to 2%), June–August 2025; conditional Chronos-2 forecasts"
 
 
 
@@ -42,7 +43,7 @@ class ResearchBackend:
                 publication_time=release.published_at, passage_locator=release.locator).model_dump())
         self.corpus_version = "bls-" + sha256(json.dumps(self.evidence, sort_keys=True).encode()).hexdigest()[:20]
         self.warnings = [LABEL, *self.seed_request.assumptions,
-            "Three explicit June/July/August release prompts; frozen June evidence and up to 65 simulated sessions.",
+            "Continuous monthly headline CPI inputs (-2% to 2%); June 11, July 15 and August 12, 2025. Examples are optional.",
             "Actual history is a separate overlay. Empirical baseline requires sufficient earlier releases."]
 
     def capabilities(self):
@@ -52,7 +53,7 @@ class ResearchBackend:
             targets=["SPY"], unit="index", frequency="trading_session",
             default_viewport=dict(start_year=2025, end_year=2025),
             coverage=dict(first_session=self.points[0]["date"], last_session="2025-08-18", gaps=[]),
-            supported_event_families=["cpi_release_presets"], default_horizon_sessions=5,
+            supported_event_families=["headline_cpi_mom"], default_horizon_sessions=5,
             max_horizon_sessions=65, max_prompts=3, evidence_available=bool(self.evidence),
             display_rights="Local academic/educational research; public display and redistribution unreviewed. "
                 "HF Data Library; Data provided for free by IEX. https://www.iex.io/legal/hist-data-terms",
@@ -82,20 +83,32 @@ class ResearchBackend:
         if request.mode == "add" and len(run["prompts"]) >= 3:
             raise BackendError(200, "unsupported", "research_prompt_limit",
                 "Three prompts are supported; select an existing prompt to replace.", run["revision"], list(PRESETS))
-        value = (parsed.requested_start, parsed.operation, parsed.value, parsed.reference)
-        if (parsed.scope != "release" or parsed.date_precision != "day"
-            or parsed.requested_end is not None or parsed.release_dates != [parsed.requested_start]
-            or value not in PRESETS.values()):
+        error = instruction_error(parsed)
+        if error:
             raise BackendError(200, "unsupported", "research_scope",
-                "Choose a supported June/July/August release preset.", run["revision"], list(PRESETS))
+                error, run["revision"], list(PRESETS))
         if not run["prompts"] and parsed.requested_start != DATES[0]:
             raise BackendError(200, "unsupported", "research_first_fork",
-                "Start with a June 11 CPI preset.", run["revision"], list(PRESETS)[:2])
+                "Start with a June 11, 2025 monthly headline CPI assumption.", run["revision"], list(PRESETS)[:2])
+        reference = parsed.reference
+        if reference and reference.startswith("date:"):
+            matches = [p for p in run["prompts"] if p["effective_start"] == reference[5:]
+                       and p["id"] != request.selected_prompt_id]
+            if len(matches) != 1:
+                raise BackendError(200, "needs_clarification", "ambiguous_reference",
+                    "That release must identify one existing earlier simulated prompt.", run["revision"])
+            reference = matches[0]["id"]
+        if parsed.operation != "set":
+            earlier = [p for p in run["prompts"] if p["effective_start"] < parsed.requested_start
+                       and p["id"] != request.selected_prompt_id]
+            if not earlier or (reference != "preceding" and reference not in {p["id"] for p in earlier}):
+                raise BackendError(200, "needs_clarification", "broken_reference",
+                    "Relative assumptions need an earlier simulated reading. Set the first CPI level explicitly.", run["revision"])
         return Instruction(date_precision="day", requested_start=parsed.requested_start, requested_end=None,
             effective_start=parsed.requested_start, effective_end=None,
             effective_at=f"{parsed.requested_start}T08:30:00-04:00",
             timezone="America/New_York", scope="release", release_dates=parsed.release_dates,
-            operation=parsed.operation, value=parsed.value, unit=parsed.unit, reference=parsed.reference)
+            operation=parsed.operation, value=parsed.value, unit=parsed.unit, reference=reference)
 
     def candidate(self, old, draft, request_id, adapter):
         self.compatible(old)

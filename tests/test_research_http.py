@@ -65,7 +65,7 @@ class ResearchHTTPTests(unittest.TestCase):
         self.path = self.root / "research.sqlite"
         self.snapshot = self.write_snapshot("test-only")
         self.settings = Settings(app_mode="research", data_dir=self.root, dataset_version="test-only",
-                                 sqlite_path=self.path, forecast_device="cpu")
+                                 sqlite_path=self.path, forecast_device="cpu", parser_provider="deterministic")
         self.clock = datetime(2026, 11, 8, tzinfo=timezone.utc)
         self.client, self.adapter = self.restart()
         created = self.client.post("/api/timelines", json=dict(target_id="SPY", request_id="create"))
@@ -236,6 +236,50 @@ class ResearchHTTPTests(unittest.TestCase):
         limit = self.client.post(self.url + "/interpret", json=dict(text=texts[0], mode="add", expected_revision=5))
         self.assertEqual(limit.json()["code"], "research_prompt_limit")
 
+    def test_continuous_inputs_reach_forecaster_and_references_survive_edits(self):
+        from api.contracts import ParsedScenario
+        from test_provider_parser import scenario
+        class Parser:
+            output = None
+            def parse(self, request):
+                raw = dict(self.output)
+                raw.pop("measure")
+                return ParsedScenario.model_validate(raw)
+        parser = Parser()
+        self.client.app.state.backend_service.parser = parser
+        # Unlike the basic test engine, this one is horizon/context sensitive,
+        # so it detects append-vs-replace segmentation regressions.
+        predict = self.adapter._pipeline.predict_df
+        def horizon_sensitive(past, future_df, **kwargs):
+            result = predict(past, future_df, **kwargs)
+            result[["0.1", "0.5", "0.9"]] += len(future_df) / 10 + float(past.target.iloc[-1]) / 100
+            return result
+        self.adapter._pipeline.predict_df = horizon_sensitive
+        def submit(day, op, value, ref, revision, selected=None):
+            parser.output = scenario(day, op, value, ref)
+            return self.submit_text("provider-extracted assumption", revision, selected)
+        submit("2025-06-11", "set", .35, None, 0)
+        self.assertEqual(self.adapter._pipeline.calls[0][1].cpi_percent.tolist(), [.35] * 5)
+        submit("2025-07-15", "add_pp", -.075, "preceding", 1)
+        result = submit("2025-08-12", "carry", None, "date:2025-07-15", 2)
+        self.assertEqual([p["resolved_value"] for p in result["prompts"]], [.35, .275, .275])
+        before = self.client.get(self.url).json()
+        # Same event log must not depend on append vs replace inference lengths.
+        submit("2025-06-11", "set", .35, None, 3, "p1")
+        self.assertEqual(self.client.get(self.url).json()["series"], before["series"])
+        result = submit("2025-06-11", "set", -.15, None, 4, "p1")
+        self.assertEqual([p["resolved_value"] for p in result["prompts"]], [-.15, -.225, -.225])
+        self.assertEqual([p["id"] for p in result["prompts"]], ["p1", "p2", "p3"])
+        self.assertEqual(self.adapter._pipeline.calls[-1][1].cpi_percent.tolist(), [-.225] * 5)
+        before = self.client.get(self.url).json()
+        count = len(self.adapter._pipeline.calls)
+        parser.output = scenario("2025-07-15", "add_pp", -3.0, "preceding")
+        draft = self.client.post(self.url + "/interpret", json=dict(text="lower by 3 pp", mode="replace", selected_prompt_id="p2", expected_revision=5)).json()
+        failure, _ = self.commit(draft["draft_id"], 5, "out-of-range")
+        self.assertEqual(failure.json()["code"], "resolved_cpi_out_of_range")
+        self.assertEqual(self.client.get(self.url).json(), before)
+        self.assertEqual(len(self.adapter._pipeline.calls), count)
+
     def test_reveal_is_revision_scoped_and_does_not_change_inference(self):
         before, _ = self.run_one()
         count = len(self.adapter._pipeline.calls)
@@ -281,8 +325,8 @@ class ResearchHTTPTests(unittest.TestCase):
         class WrongDate(PresetParser):
             def parse(inner, request):
                 parsed = super().parse(request)
-                parsed.requested_start = "2025-07-15"
-                parsed.release_dates = ["2025-07-15"]
+                parsed.requested_start = "2025-09-11"
+                parsed.release_dates = ["2025-09-11"]
                 return parsed
         client, _ = self.restart(parser=WrongDate())
         result = client.post(self.url + "/interpret", json=dict(text="Set June 11 CPI to 0.4%", mode="add", expected_revision=0))

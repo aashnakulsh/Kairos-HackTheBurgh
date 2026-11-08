@@ -1,6 +1,24 @@
 # Frontend/backend handoff — contract v1
 
-**Current runtime:** `api.app:create_app` supplies the durable fixture/research API;
+> **Current: open-ended scenario mode, 8 November 2026.** Use `APP_MODE=scenario`
+> for arbitrary event prompts, researched numeric covariates and real Chronos
+> baseline/scenario forecasts. The CPI-only notes below describe `APP_MODE=research`.
+> There are additive schema changes: `operation: "scenario"`, `scope: "event"`,
+> `unit: "scenario"`, an attached `scenario` plan, optional `baseline` and
+> `scenario_warnings`. Regenerate/use the current types. See
+> [general scenario setup, API flow and frontend integration](general-scenario-handover.md).
+> The complete portable UI patch is `integration/frontend-scenario.patch`;
+> it includes the earlier research integration and must not be blindly stacked on it.
+
+> **8 November 2026 continuous-CPI update:** The v1 payload schemas are unchanged.
+> Research capabilities now advertise `headline_cpi_mom`; example prompts in
+> `fixture_presets` are suggestions, not a whitelist. Continuous monthly levels
+> in [-2%, 2%], signed percentage-point changes, and carry-forward are supported
+> on the existing June/July/August release calendar. Generic interpretation errors
+> use `scenario_interpretation`. Start a new timeline for model version `cpu-cpi-v3`
+> and the expanded snapshot. See [current setup, API and verification status](continuous-cpi-demo-handover.md).
+
+**Current runtime:** `api.app:create_app` supplies the durable fixture/research/scenario API;
 `api.fixture_app:app` remains a synthetic, in-memory handoff. The full React app is
 in the separate frontend worktree, with its integration preserved in
 `integration/frontend-research.patch`. The review history below describes earlier

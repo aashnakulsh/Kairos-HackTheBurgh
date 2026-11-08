@@ -13,27 +13,39 @@ class Settings:
     data_dir: Path = field(default_factory=lambda: Path(os.environ.get("DATA_DIR", "data/local")).expanduser())
     dataset_version: str | None = field(default_factory=lambda: os.environ.get("DATASET_VERSION") or None)
     draft_ttl_seconds: int = 300
-    parser_provider: str = "deterministic"
+    parser_provider: str | None = field(default_factory=lambda: os.environ.get("PARSER_PROVIDER"))
     ollama_base_url: str = field(default_factory=lambda: os.environ.get(
         "OLLAMA_BASE_URL", "http://127.0.0.1:11434"))
     ollama_model: str = field(default_factory=lambda: os.environ.get("OLLAMA_MODEL", "qwen3.5:9b"))
+    ollama_timeout_seconds: float = field(default_factory=lambda: float(os.environ.get("OLLAMA_TIMEOUT_SECONDS", "12")))
     forecast_device: str = field(default_factory=lambda: os.environ.get("FORECAST_DEVICE", "cpu"))
     openai_api_key: str = field(default_factory=lambda: os.environ.get("OPENAI_API_KEY", ""), repr=False)
     openai_model: str = field(default_factory=lambda: os.environ.get("OPENAI_MODEL", ""))
+    openai_timeout_seconds: float = field(default_factory=lambda: float(os.environ.get("OPENAI_TIMEOUT_SECONDS", "5")))
     description_timeout_seconds: float = field(default_factory=lambda: float(os.environ.get(
         "OPENAI_DESCRIPTION_TIMEOUT_SECONDS", "20")))
 
+    scenario_timeout_seconds: float = field(default_factory=lambda: float(os.environ.get("SCENARIO_TIMEOUT_SECONDS", "90")))
+
     def __post_init__(self):
+        if self.parser_provider is None:
+            object.__setattr__(self, "parser_provider", "auto" if self.app_mode in {"research", "scenario"} else "deterministic")
         object.__setattr__(self, "data_dir", Path(self.data_dir).expanduser())
         database = self.sqlite_path if self.sqlite_path is not None else self.data_dir / (
-            "teamrelay-research.sqlite" if self.app_mode == "research" else "teamrelay.sqlite")
+            f"teamrelay-{self.app_mode}.sqlite" if self.app_mode != "fixture" else "teamrelay.sqlite")
         object.__setattr__(self, "sqlite_path", Path(database).expanduser())
+        if not 0 < self.scenario_timeout_seconds <= 180:
+            raise ValueError("Scenario timeout must be between zero and 180 seconds")
         if self.draft_ttl_seconds <= 0:
             raise ValueError("Draft lifetime must be positive")
         if not 0 < self.description_timeout_seconds <= 120:
             raise ValueError("Description timeout must be between zero and 120 seconds")
-        if self.app_mode not in {"fixture", "research"}:
-            raise ValueError("APP_MODE must be fixture or research")
+        if self.parser_provider not in {"deterministic", "auto", "ollama"}:
+            raise ValueError("PARSER_PROVIDER must be deterministic, auto or ollama")
+        if not 0 < self.openai_timeout_seconds <= 120 or not 0 < self.ollama_timeout_seconds <= 120:
+            raise ValueError("Parser timeouts must be between zero and 120 seconds")
+        if self.app_mode not in {"fixture", "research", "scenario"}:
+            raise ValueError("APP_MODE must be fixture, research or scenario")
         if self.app_mode == "research":
             if not self.dataset_version or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", self.dataset_version):
                 raise ValueError("Research mode requires an explicit DATASET_VERSION snapshot name")

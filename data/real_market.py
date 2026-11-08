@@ -20,6 +20,7 @@ import pyarrow.parquet as pq
 from pypdf import PdfReader
 
 from api.contracts import ForecastRequest, FutureRow, HistoryRow
+from api.cpi_domain import MIN_CPI, MAX_CPI, RELEASE_DATES
 
 CUTOFF = "2025-06-11T12:29:59Z"
 DATES = ["2025-06-11", "2025-06-12", "2025-06-13", "2025-06-16", "2025-06-17"]
@@ -276,9 +277,9 @@ class MarketInputs:
             raise UnsupportedInput("Require contiguous trading sessions within the 65-session horizon")
         previous = seed.history[-1].cpi_percent
         for row in rows:
-            if not -2 <= row.cpi_percent <= 2:
+            if not MIN_CPI <= row.cpi_percent <= MAX_CPI:
                 raise UnsupportedInput("Monthly CPI assumption outside -2% to 2%")
-            if row.release_indicator and row.date not in {"2025-06-11", "2025-07-15", "2025-08-12"}:
+            if row.release_indicator and row.date not in RELEASE_DATES:
                 raise UnsupportedInput("Unsupported intervention date")
             if not row.release_indicator and row.cpi_percent != previous:
                 raise UnsupportedInput("CPI may change only at an explicit release intervention")
@@ -321,7 +322,7 @@ class MarketInputs:
         return rows
 
     def request(self, cpi_percent, model_version):
-        if not math.isfinite(cpi_percent) or not -2 <= cpi_percent <= 2:
+        if not math.isfinite(cpi_percent) or not MIN_CPI <= cpi_percent <= MAX_CPI:
             raise UnsupportedInput("Supported research assumption range is -2% to 2% monthly CPI")
         if self.manifest["cutoff"] != CUTOFF:
             raise UnsupportedInput("Only the frozen June 11 cutoff is implemented")

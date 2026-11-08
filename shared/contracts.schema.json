@@ -1,5 +1,72 @@
 {
   "$defs": {
+    "AnalogueMeasurement": {
+      "additionalProperties": false,
+      "properties": {
+        "event": {
+          "title": "Event",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        },
+        "event_date": {
+          "title": "Event Date",
+          "type": "string"
+        },
+        "effective_date": {
+          "title": "Effective Date",
+          "type": "string"
+        },
+        "end_date": {
+          "title": "End Date",
+          "type": "string"
+        },
+        "sessions": {
+          "title": "Sessions",
+          "type": "integer"
+        },
+        "market_return_percent": {
+          "title": "Market Return Percent",
+          "type": "number"
+        },
+        "realized_daily_volatility_percent": {
+          "title": "Realized Daily Volatility Percent",
+          "type": "number"
+        },
+        "worst_close_return_percent": {
+          "title": "Worst Close Return Percent",
+          "type": "number"
+        },
+        "feature_changes": {
+          "items": {
+            "$ref": "#/$defs/FeatureChange"
+          },
+          "title": "Feature Changes",
+          "type": "array"
+        },
+        "method": {
+          "title": "Method",
+          "type": "string"
+        }
+      },
+      "required": [
+        "event",
+        "source_url",
+        "event_date",
+        "effective_date",
+        "end_date",
+        "sessions",
+        "market_return_percent",
+        "realized_daily_volatility_percent",
+        "worst_close_return_percent",
+        "feature_changes",
+        "method"
+      ],
+      "title": "AnalogueMeasurement",
+      "type": "object"
+    },
     "Capabilities": {
       "additionalProperties": false,
       "properties": {
@@ -292,6 +359,35 @@
         "passage_locator"
       ],
       "title": "Evidence",
+      "type": "object"
+    },
+    "FeatureChange": {
+      "additionalProperties": false,
+      "properties": {
+        "feature": {
+          "title": "Feature",
+          "type": "string"
+        },
+        "start": {
+          "title": "Start",
+          "type": "number"
+        },
+        "end": {
+          "title": "End",
+          "type": "number"
+        },
+        "change": {
+          "title": "Change",
+          "type": "number"
+        }
+      },
+      "required": [
+        "feature",
+        "start",
+        "end",
+        "change"
+      ],
+      "title": "FeatureChange",
       "type": "object"
     },
     "ForecastRequest": {
@@ -723,7 +819,8 @@
           "enum": [
             "release",
             "interval",
-            "recurring"
+            "recurring",
+            "event"
           ],
           "title": "Scope",
           "type": "string"
@@ -740,7 +837,8 @@
           "enum": [
             "set",
             "add_pp",
-            "carry"
+            "carry",
+            "scenario"
           ],
           "title": "Operation",
           "type": "string"
@@ -759,7 +857,8 @@
         "unit": {
           "enum": [
             "percent",
-            "percentage_points"
+            "percentage_points",
+            "scenario"
           ],
           "title": "Unit",
           "type": "string"
@@ -775,6 +874,17 @@
             }
           ],
           "title": "Reference"
+        },
+        "scenario": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScenarioPlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         }
       },
       "required": [
@@ -1299,7 +1409,8 @@
           "enum": [
             "release",
             "interval",
-            "recurring"
+            "recurring",
+            "event"
           ],
           "title": "Scope",
           "type": "string"
@@ -1316,7 +1427,8 @@
           "enum": [
             "set",
             "add_pp",
-            "carry"
+            "carry",
+            "scenario"
           ],
           "title": "Operation",
           "type": "string"
@@ -1335,7 +1447,8 @@
         "unit": {
           "enum": [
             "percent",
-            "percentage_points"
+            "percentage_points",
+            "scenario"
           ],
           "title": "Unit",
           "type": "string"
@@ -1351,6 +1464,17 @@
             }
           ],
           "title": "Reference"
+        },
+        "scenario": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ScenarioPlan"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
         },
         "id": {
           "minLength": 1,
@@ -1500,6 +1624,43 @@
         "warnings"
       ],
       "title": "ReadyDraft",
+      "type": "object"
+    },
+    "ResearchSource": {
+      "additionalProperties": false,
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "url": {
+          "pattern": "^https?://",
+          "title": "Url",
+          "type": "string"
+        },
+        "publication_date": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Publication Date"
+        },
+        "excerpt": {
+          "title": "Excerpt",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "url",
+        "publication_date",
+        "excerpt"
+      ],
+      "title": "ResearchSource",
       "type": "object"
     },
     "RevealResponse": {
@@ -1678,6 +1839,24 @@
           },
           "title": "Panels",
           "type": "object"
+        },
+        "baseline": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Series"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "scenario_warnings": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Scenario Warnings",
+          "type": "array"
         }
       },
       "required": [
@@ -1700,6 +1879,179 @@
         "panels"
       ],
       "title": "RunResponse",
+      "type": "object"
+    },
+    "ScenarioDriver": {
+      "additionalProperties": false,
+      "properties": {
+        "feature": {
+          "title": "Feature",
+          "type": "string"
+        },
+        "operation": {
+          "enum": [
+            "set",
+            "add",
+            "multiply"
+          ],
+          "title": "Operation",
+          "type": "string"
+        },
+        "value": {
+          "title": "Value",
+          "type": "number"
+        },
+        "transition_sessions": {
+          "maximum": 65,
+          "minimum": 1,
+          "title": "Transition Sessions",
+          "type": "integer"
+        },
+        "duration_sessions": {
+          "anyOf": [
+            {
+              "maximum": 65,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Duration Sessions"
+        },
+        "recovery_sessions": {
+          "default": 0,
+          "maximum": 65,
+          "minimum": 0,
+          "title": "Recovery Sessions",
+          "type": "integer"
+        },
+        "basis": {
+          "enum": [
+            "user_assumption",
+            "historical_analogue",
+            "llm_hypothesis"
+          ],
+          "title": "Basis",
+          "type": "string"
+        },
+        "rationale": {
+          "title": "Rationale",
+          "type": "string"
+        },
+        "source_urls": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Source Urls",
+          "type": "array"
+        }
+      },
+      "required": [
+        "feature",
+        "operation",
+        "value",
+        "transition_sessions",
+        "basis",
+        "rationale",
+        "source_urls"
+      ],
+      "title": "ScenarioDriver",
+      "type": "object"
+    },
+    "ScenarioPlan": {
+      "additionalProperties": false,
+      "properties": {
+        "requested_date": {
+          "title": "Requested Date",
+          "type": "string"
+        },
+        "effective_date": {
+          "title": "Effective Date",
+          "type": "string"
+        },
+        "horizon_sessions": {
+          "maximum": 65,
+          "minimum": 1,
+          "title": "Horizon Sessions",
+          "type": "integer"
+        },
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "hypothesis": {
+          "title": "Hypothesis",
+          "type": "string"
+        },
+        "drivers": {
+          "items": {
+            "$ref": "#/$defs/ScenarioDriver"
+          },
+          "title": "Drivers",
+          "type": "array"
+        },
+        "explanation": {
+          "title": "Explanation",
+          "type": "string"
+        },
+        "sources": {
+          "items": {
+            "$ref": "#/$defs/ResearchSource"
+          },
+          "title": "Sources",
+          "type": "array"
+        },
+        "analogues": {
+          "items": {
+            "$ref": "#/$defs/AnalogueMeasurement"
+          },
+          "title": "Analogues",
+          "type": "array"
+        },
+        "limitations": {
+          "items": {
+            "type": "string"
+          },
+          "title": "Limitations",
+          "type": "array"
+        },
+        "research_model": {
+          "title": "Research Model",
+          "type": "string"
+        },
+        "research_id": {
+          "title": "Research Id",
+          "type": "string"
+        },
+        "dataset_version": {
+          "title": "Dataset Version",
+          "type": "string"
+        },
+        "web_search_used": {
+          "title": "Web Search Used",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "requested_date",
+        "effective_date",
+        "horizon_sessions",
+        "title",
+        "hypothesis",
+        "drivers",
+        "explanation",
+        "sources",
+        "analogues",
+        "limitations",
+        "research_model",
+        "research_id",
+        "dataset_version",
+        "web_search_used"
+      ],
+      "title": "ScenarioPlan",
       "type": "object"
     },
     "Series": {

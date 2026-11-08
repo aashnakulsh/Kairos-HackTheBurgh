@@ -5,6 +5,7 @@ from uuid import uuid4
 from api.backend_errors import BackendError
 from api.contracts import Instruction, ParsedScenario, ReadyDraft
 from api.preset_parser import PresetParser
+from api.provider_parser import ScenarioParserRouter
 from api.replay import candidate
 from api.sqlite_store import SQLiteStore, body_hash, encode
 from api.synthetic_forecast import LABEL, SyntheticAdapter
@@ -18,8 +19,12 @@ class DurableService:
         if settings.app_mode == "research":
             from api.research_backend import ResearchBackend
             self.research = ResearchBackend(settings, adapter)
+        if settings.app_mode == "scenario":
+            from api.scenario_backend import ScenarioBackend
+            self.research = ScenarioBackend(settings, adapter=adapter, researcher=parser)
         self.store = SQLiteStore(settings.sqlite_path)
-        self.parser = parser or (self.research.parser if self.research else PresetParser())
+        self.parser = parser or (ScenarioParserRouter(settings) if settings.parser_provider != "deterministic"
+                                  else (getattr(self.research, "parser", None) or PresetParser()))
         self.adapter = self.research.adapter if self.research else (adapter or SyntheticAdapter())
         self.now = now or (lambda: datetime.now(timezone.utc))
 
@@ -84,22 +89,25 @@ class DurableService:
         self._compatible(run)
         if request.mode == "replace" and request.selected_prompt_id not in {p["id"] for p in run["prompts"]}:
             raise BackendError(422, "invalid", "unknown_prompt", "Unknown selected prompt", run["revision"])
-        parsed = ParsedScenario.model_validate(self.parser.parse(request))
-        if parsed.status != "parsed":
-            raise BackendError(200, parsed.status, "choose_preset", parsed.reason, run["revision"], parsed.choices)
-        day = parsed.requested_start
-        # The server validates provider output independently. No arbitrary calendar,
-        # recurring or interval behavior is promised by this release-only milestone.
-        if self.research:
-            instruction = self.research.instruction(run, request, parsed)
-        elif (parsed.scope != "release" or parsed.date_precision != "day" or parsed.requested_end is not None
-                or day not in SESSIONS[1:] or parsed.release_dates != [day]):
-            raise BackendError(200, "unsupported", "unsupported_scope", "Only single covered synthetic release sessions are supported")
+        if self.settings.app_mode == "scenario":
+            instruction = self.research.interpret(run, request)
         else:
-            instruction = Instruction(date_precision="day", requested_start=day, requested_end=None,
-                effective_start=day, effective_end=None, effective_at=f"{day}T08:30:00-04:00",
-                timezone="America/New_York", scope="release", release_dates=[day],
-                operation=parsed.operation, value=parsed.value, unit=parsed.unit, reference=parsed.reference)
+            parsed = ParsedScenario.model_validate(self.parser.parse(request))
+            if parsed.status != "parsed":
+                raise BackendError(200, parsed.status, "scenario_interpretation", parsed.reason, run["revision"], parsed.choices)
+            day = parsed.requested_start
+            # The server validates provider output independently. No arbitrary calendar,
+            # recurring or interval behavior is promised by this release-only milestone.
+            if self.research:
+                instruction = self.research.instruction(run, request, parsed)
+            elif (parsed.scope != "release" or parsed.date_precision != "day" or parsed.requested_end is not None
+                    or day not in SESSIONS[1:] or parsed.release_dates != [day]):
+                raise BackendError(200, "unsupported", "unsupported_scope", "Only single covered synthetic release sessions are supported")
+            else:
+                instruction = Instruction(date_precision="day", requested_start=day, requested_end=None,
+                    effective_start=day, effective_end=None, effective_at=f"{day}T08:30:00-04:00",
+                    timezone="America/New_York", scope="release", release_dates=[day],
+                    operation=parsed.operation, value=parsed.value, unit=parsed.unit, reference=parsed.reference)
         draft = ReadyDraft(status="ready", draft_id=f"draft-{uuid4().hex}", timeline_id=timeline_id,
             expected_revision=run["revision"], mode=request.mode, selected_prompt_id=request.selected_prompt_id,
             text=request.text, expires_at=(self.now() + timedelta(seconds=self.settings.draft_ttl_seconds)).isoformat(),
@@ -156,6 +164,8 @@ class DurableService:
 
     def reveal(self, timeline_id, revision):
         run = self.get(timeline_id, revision)
+        if self.settings.app_mode == "scenario":
+            return self.research.reveal(run)
         if self.research:
             from data.reveal import reveal_run
             from data.real_market import UnsupportedInput

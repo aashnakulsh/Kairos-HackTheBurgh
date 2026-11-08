@@ -1,5 +1,6 @@
 """Canonical handoff v1. Calendar, rights and persistence need service validation."""
 from datetime import date, datetime
+from api.scenario_contracts import ScenarioPlan
 from typing import Annotated, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, Field, model_validator
 
@@ -71,15 +72,24 @@ class Instruction(Contract):
     effective_end: Date | None
     effective_at: Instant
     timezone: Literal["America/New_York"]
-    scope: Literal["release", "interval", "recurring"]
+    scope: Literal["release", "interval", "recurring", "event"]
     release_dates: list[Date]
-    operation: Literal["set", "add_pp", "carry"]
+    operation: Literal["set", "add_pp", "carry", "scenario"]
     value: float | None
-    unit: Literal["percent", "percentage_points"]
+    unit: Literal["percent", "percentage_points", "scenario"]
     reference: ID | None
+    scenario: ScenarioPlan | None = Field(default=None, exclude_if=lambda v: v is None)
 
     @model_validator(mode="after")
     def meaning(self):
+        if self.operation == "scenario":
+            if self.scenario is None or self.scope != "event" or self.unit != "scenario" or self.value is not None or self.reference is not None:
+                raise ValueError("Scenario event requires its explicit plan, no CPI value/reference")
+            if self.effective_start != self.scenario.effective_date or self.requested_start != self.scenario.requested_date:
+                raise ValueError("Scenario dates must match its plan")
+            return self
+        if self.scenario is not None:
+            raise ValueError("Legacy CPI instruction cannot contain a general scenario")
         if self.requested_end and self.requested_end < self.requested_start:
             raise ValueError("Reversed requested interval")
         if self.effective_end and self.effective_end < self.effective_start:
@@ -251,6 +261,8 @@ class RunResponse(Contract):
     prompts: list[Prompt]
     series: Series
     panels: dict[str, Panel]
+    baseline: Series | None = Field(default=None, exclude_if=lambda v: v is None)
+    scenario_warnings: list[str] = Field(default_factory=list, exclude_if=lambda v: not v)
 
     @model_validator(mode="after")
     def consistent(self):
