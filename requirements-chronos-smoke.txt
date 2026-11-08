@@ -1,0 +1,4 @@
+# Optional host smoke check only; never needed by backend/fixture tests.
+# New proposed pin, not a pre-existing pipeline dependency or a full lockfile.
+# Upstream 2.3.2 requires Python >=3.10; see docs/durable-backend.md.
+chronos-forecasting==2.3.2

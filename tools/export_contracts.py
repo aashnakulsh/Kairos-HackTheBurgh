@@ -35,8 +35,17 @@ for name, definition in schema["$defs"].items():
         optional = "" if key in definition.get("required", []) else "?"
         lines.append(f"  {key}{optional}: {ts(node)};")
     lines.append("}\n")
+openapi = create_app().openapi()
+# Python's HTTPStatus calls 422 "Unprocessable Entity" before 3.13 and
+# "Unprocessable Content" from 3.13. Keep generated artifacts reproducible across
+# supported Python versions without changing the status code or payload schema.
+for path_item in openapi["paths"].values():
+    for operation in path_item.values():
+        response = operation.get("responses", {}).get("422")
+        if response is not None:
+            response["description"] = "Unprocessable Content"
 outputs = {ROOT / "shared/contracts.schema.json": schema_text,
-           ROOT / "shared/openapi.json": json.dumps(create_app().openapi(), indent=2) + "\n",
+           ROOT / "shared/openapi.json": json.dumps(openapi, indent=2) + "\n",
            ROOT / "web/src/generated/contracts.ts": "\n".join(lines)}
 for path, content in outputs.items():
     if "--check" in sys.argv:

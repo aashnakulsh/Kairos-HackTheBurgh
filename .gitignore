@@ -7,3 +7,8 @@ node_modules/
 __pycache__/
 .DS_Store
 Thumbs.db
+data/local/
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
