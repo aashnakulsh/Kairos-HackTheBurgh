@@ -1,0 +1,339 @@
+/* Global shell, layout and workspace styles (Orion). Chart styles live in features/chart/chart.css. */
+
+:root {
+  color-scheme: dark;
+  --text: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --line: #404040;
+  --accent: #fbbf24;
+  --brown: #4a2a10;
+  /* Text boxes: solid brown, or translucent brown over the scene; text in the title yellow. */
+  --brown-glass: rgba(74, 42, 16, 0.72);
+  --brown-edge: #7a4a22;
+  --yellow-soft: rgba(251, 191, 36, 0.68); /* placeholders and secondary text inside brown boxes */
+  /* Pixel font for decorative, low-stakes text; numbers, chart details and typed input keep the sans font. */
+  --pixel-font: "VT323", ui-monospace, Menlo, monospace;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text);
+  background: #000;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #000; }
+a { color: #7dd3fc; }
+h1, h2 { margin: 0; font-size: inherit; font-weight: 600; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Buttons: primary actions are the game's yellow with brown text, in the pixel font. */
+.button {
+  padding: 6px 14px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: var(--accent);
+  color: var(--brown);
+  font-family: var(--pixel-font);
+  font-size: 21px;
+  line-height: 1.1;
+  font-weight: 400;
+  white-space: nowrap;
+  cursor: pointer;
+  box-shadow: 0 3px 0 #9a6b0b; /* pixel-style bottom edge */
+  transition: transform 160ms var(--ease-out), opacity 150ms ease;
+}
+.button:active:not(:disabled) { transform: scale(0.97); }
+.button:disabled { opacity: 0.4; cursor: default; }
+.button-quiet { background: var(--brown-glass); color: var(--accent); border-color: var(--brown-edge); box-shadow: none; }
+.button-reveal[aria-pressed="true"] { background: #e5a50a; } /* toggled on: a shade deeper */
+
+/* Game title: large yellow pixel lettering, on the start screen and in the voyage header. */
+.game-title { font-family: var(--pixel-font); font-weight: 400; color: var(--accent); letter-spacing: 0.04em; text-shadow: 0 3px 0 var(--brown), 0 0 10px rgba(0, 0, 0, 0.6); }
+.workspace-bar .game-title { font-size: 34px; line-height: 1; }
+.game-title-start { position: absolute; top: max(16px, 4svh); left: 50%; translate: -50% 0; font-size: clamp(40px, 7vw, 84px); line-height: 1; white-space: nowrap; }
+@media (hover: hover) and (pointer: fine) {
+  .button-quiet:hover:not(:disabled) { border-color: var(--accent); }
+}
+:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+/* Start screen: zoomed-in pixel scene of the ship at its dock, one centred composer over the water. */
+.intro {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: grid;
+  place-content: end center; /* below the moored ship, so the box never covers it */
+  justify-items: center;
+  gap: 12px;
+  padding: 16px 16px 12svh;
+  background: #000;
+}
+.intro .composer { width: min(1040px, calc(100vw - 32px)); } /* wide enough for the longest example on one line */
+.intro-error { color: var(--text-muted); }
+
+/* Composer */
+.composer { view-transition-name: composer; display: grid; gap: 6px; width: min(760px, 100%); margin: 0 auto; }
+/* Pixel font to match the game; larger and brighter so it reads over sky and sea. */
+.composer-label { font-family: "VT323", ui-monospace, Menlo, monospace; font-size: 23px; line-height: 1; letter-spacing: 0.03em; color: var(--text); transition: color 200ms ease; }
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--brown-edge);
+  border-radius: 14px;
+  background: var(--brown);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.composer-box:focus-within { border-color: var(--accent); }
+.composer[data-replacing] .composer-label { color: var(--accent); }
+.composer[data-replacing] .composer-box { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.18); }
+.composer-input {
+  flex: 1;
+  min-height: 40px;
+  max-height: 30vh;
+  field-sizing: content;
+  resize: none;
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--accent);
+  font: inherit;
+  font-size: 16px; /* 16px stops iOS zooming on focus */
+}
+.composer-input::placeholder { color: var(--yellow-soft); font-size: 14px; } /* smaller, so the start screen example fits one line */
+.composer-input:focus-visible { outline: none; }
+.composer-status { min-height: 1.45em; font-size: 13px; color: var(--text-muted); }
+.composer-pending::before {
+  content: "";
+  display: inline-block;
+  width: 7px; height: 7px; margin-right: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 900ms ease-in-out infinite alternate;
+}
+@keyframes pulse { from { opacity: 0.25; } to { opacity: 1; } }
+
+.notice {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--brown-edge);
+  border-radius: 10px;
+  background: var(--brown);
+  color: var(--accent);
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(4px); }
+}
+.notice[data-tone="error"] { border-color: rgba(248, 113, 113, 0.6); }
+.notice p { margin: 0 0 6px; }
+.notice-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.notice-choices .button { white-space: normal; text-align: left; }
+
+/* Workspace: graph + narrative, scale, composer near 80% height, impacts below */
+.workspace {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 32px;
+}
+.workspace-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.workspace-bar .button { margin-left: auto; }
+.data-label { padding: 2px 8px; border: 1px solid var(--accent); border-radius: 999px; background: var(--brown-glass); color: var(--accent); }
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Grows instead of overlapping when the panel is tall; otherwise keeps the composer near 80% height. */
+  min-height: max(calc(80svh - 130px), 380px);
+}
+
+/* Pixel scrolls (descriptions, notes, end screen), in flow above the graph so they never overlap it.
+   Parchment with a 4px dither, a hard 4px notched border (offset shadows leave the corners empty)
+   and wooden rods top and bottom that stick out past the paper. */
+.note {
+  --paper: #ecd9a8;
+  --paper-dither: #e5cf98;
+  --edge: #8a6236;
+  --wood: #7a4a22;
+  --wood-light: #a8703a;
+  --wood-dark: #4a2a10;
+  --ink: #3a2410;
+  --ink-muted: #6e5233;
+  position: relative;
+  display: block;
+  margin: 14px 12px;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: repeating-conic-gradient(var(--paper) 0 25%, var(--paper-dither) 0 50%) 0 0 / 8px 8px;
+  color: var(--ink);
+  font-family: "VT323", ui-monospace, Menlo, monospace;
+  font-size: 19px;
+  line-height: 1.15;
+  text-align: left;
+  box-shadow: 0 -4px 0 var(--edge), 0 4px 0 var(--edge), -4px 0 0 var(--edge), 4px 0 0 var(--edge), 6px 10px 0 rgba(0, 0, 0, 0.35);
+}
+.note::before, .note::after {
+  content: "";
+  position: absolute;
+  left: -14px;
+  right: -14px;
+  height: 12px;
+  background: linear-gradient(var(--wood-light) 0 3px, var(--wood) 3px 9px, var(--wood-dark) 9px);
+  /* stepped pixel corners on the rod ends */
+  clip-path: polygon(0 3px, 3px 3px, 3px 0, calc(100% - 3px) 0, calc(100% - 3px) 3px, 100% 3px, 100% calc(100% - 3px),
+    calc(100% - 3px) calc(100% - 3px), calc(100% - 3px) 100%, 3px 100%, 3px calc(100% - 3px), 0 calc(100% - 3px));
+}
+.note::before { top: -14px; }
+.note::after { bottom: -14px; }
+.note-small, .note-scroll { display: block; padding: 14px 16px 16px; }
+.note-scroll { max-height: inherit; overflow: auto; }
+.note-title { display: block; text-align: center; font-size: 22px; font-weight: 400; letter-spacing: 0.04em; }
+.note-divider { display: block; margin: 4px 0 8px; overflow: hidden; white-space: nowrap; color: var(--ink-muted); }
+.note-trend { color: var(--ink-muted); }
+.note-trend[data-trend="gain"], .note [data-trend="gain"] { color: #2f6b1f; }
+.note-trend[data-trend="loss"], .note [data-trend="loss"] { color: #9b1c1c; }
+.note button.button { font-family: inherit; font-size: 18px; border-radius: 0; box-shadow: 0 3px 0 rgba(0, 0, 0, 0.35); }
+.note .button { background: var(--wood-dark); color: var(--paper); }
+.note .button-quiet { background: transparent; color: var(--ink); border-color: var(--edge); }
+
+/* End screen: giant scroll on the left; the ship docks at the finishing pier behind it. */
+.endscreen { position: relative; isolation: isolate; min-height: 100dvh; display: flex; align-items: center; padding: 6svh 16px; }
+.scroll-giant { width: min(620px, 46vw); max-height: 88svh; margin-left: max(24px, 4vw); font-size: 22px; }
+.scroll-giant .note-title { font-size: 34px; }
+.scroll-giant .note-title:focus { outline: none; }
+.scroll-net { font-size: 26px; margin: 0 0 10px; }
+.scroll-legs { margin: 12px 0; padding-left: 1.4em; }
+.scroll-legs li { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 2px 12px; margin-bottom: 4px; }
+.scroll-label { color: var(--ink-muted); font-size: 17px; }
+.scroll-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 14px; }
+@media (max-width: 760px) { .scroll-giant { width: 100%; margin-left: 0; } }
+
+/* Start screen: required journey length picker inside the composer */
+.composer-legs { display: flex; align-items: center; gap: 6px; font-family: "VT323", ui-monospace, Menlo, monospace; font-size: 20px; color: var(--text); white-space: nowrap; }
+
+/* "How to play": a button on the start screen opens a pixel-scroll modal. */
+.instructions-open { position: absolute; top: 16px; right: 16px; z-index: 1; }
+/* Optional finish, offered once every leg is written; pinned to the screen's bottom-right corner. */
+.end-journey { position: fixed; right: 16px; bottom: 16px; z-index: 6; font-size: 24px; padding: 8px 18px; }
+@media (max-width: 760px) { .instructions-open { top: auto; bottom: 16px; } } /* the title owns the top on phones */
+.instructions {
+  width: min(560px, calc(100vw - 32px));
+  max-width: none;
+  max-height: none;
+  padding: 16px; /* room for the scroll rods */
+  border: 0;
+  background: transparent;
+  color: inherit;
+  overflow: visible;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style { opacity: 0; transform: scale(0.96); } /* centred modal: scales from centre */
+}
+.instructions::backdrop { background: rgba(0, 0, 0, 0.6); }
+.instructions .note { margin: 0; }
+.instructions .note-scroll { max-height: calc(100svh - 96px); }
+.instructions-steps { margin: 0; padding-left: 1.3em; }
+.instructions-steps > li { margin-bottom: 8px; }
+.instructions-steps ul { margin: 4px 0 0; padding-left: 1.1em; }
+.composer-legs select { padding: 4px 6px; border: 1px solid var(--brown-edge); border-radius: 6px; background: var(--brown); color: var(--accent); font: 20px/1 var(--pixel-font); }
+/* Where supported (Chromium 135+), style the opened option list too; elsewhere the OS draws it. */
+@supports (appearance: base-select) {
+  .composer-legs select, .composer-legs select::picker(select) { appearance: base-select; }
+  .composer-legs select::picker(select) { border: 1px solid var(--brown-edge); background: var(--brown); color: var(--accent); font: 20px/1.2 var(--pixel-font); }
+  .composer-legs option:checked, .composer-legs option:hover { background: var(--accent); color: var(--brown); }
+}
+
+/* Deselected: a slightly overlapping row of small tilted notes. */
+.notes {
+  flex: none;
+  display: flex;
+  justify-content: safe center; /* "safe": an overflowing row still scrolls back to its first note */
+  margin: 0 0 6px;
+  padding: 6px 20px 14px; /* room for the scroll rods inside the scrolling row */
+  list-style: none;
+  overflow-x: auto; /* seven notes on a phone scroll inside the row, never the page */
+}
+.notes li { flex: 0 1 200px; min-width: 150px; margin-left: -8px; transform: rotate(var(--tilt)); }
+.notes li:first-child { margin-left: 0; }
+.note-small {
+  width: 100%;
+  height: 100%;
+  cursor: pointer;
+  transition: transform 200ms var(--ease-out), box-shadow 200ms var(--ease-out);
+  @starting-style { transform: translateY(6px); opacity: 0; }
+}
+.note-small .note-body { display: -webkit-box; -webkit-line-clamp: 4; -webkit-box-orient: vertical; overflow: hidden; margin-bottom: 8px; }
+.note-small .note-trend { display: block; font-size: 16px; }
+.note-small .note-title { font-size: 20px; }
+.note-small:active { transform: scale(0.97); }
+.note-small:focus-visible { outline-offset: 4px; }
+@media (hover: hover) and (pointer: fine) {
+  .notes li:hover { z-index: 1; }
+  .note-small:hover { transform: translateY(-4px) rotate(calc(var(--tilt) * -1)); box-shadow: 0 2px 4px rgba(0, 0, 0, 0.25), 0 14px 32px rgba(0, 0, 0, 0.4); }
+}
+
+/* Selected: one wide centred note with the full description. */
+.narrative {
+  flex: none;
+  width: min(680px, calc(100% - 28px)); /* room for the rods */
+  max-height: 24svh;
+  margin: 18px auto 24px;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(4px); }
+}
+.narrative p { margin: 6px 0 0; }
+.narrative a { display: inline-block; margin-right: 8px; color: #1d4ed8; }
+.narrative-scope, .narrative-meta { color: var(--ink-muted); }
+.narrative-warning { color: #b91c1c; }
+
+.impacts, .impacts-empty { width: min(760px, 100%); margin: 0 auto; }
+.impacts { display: grid; gap: 6px; padding: 0; list-style: none; }
+.impacts li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border-radius: 10px; background: var(--brown-glass); color: var(--accent); }
+.impacts-empty { color: var(--text-muted); font-size: 13px; }
+.impacts-detail { color: var(--yellow-soft); font-size: 13px; }
+
+/* Background: pixel-art sea voyage (PixelSea); a team GIF can replace it via VITE_BACKGROUND_ASSET.
+   Absolute, not fixed: it scrolls with the workspace so the sea stays on the chart's sea-level line. */
+.backdrop { position: absolute; inset: 0; z-index: -1; overflow: hidden; background: #050505; }
+.pixel-sea { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+.backdrop-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35; }
+/* Loose text sits on sky or sea: a dark outline keeps it readable on both. */
+.workspace-bar, .chart-caption, .timeline, .composer-label, .composer-status, .impacts-empty { text-shadow: 0 1px 2px rgba(0, 0, 0, 0.9), 0 0 6px rgba(0, 0, 0, 0.6); }
+.voyage { padding: 2px 8px; border-radius: 4px; background: var(--brown-glass); color: var(--accent); }
+/* Decorative, low-stakes text in the pixel font (numbers, chart details and typed input stay sans for legibility). */
+.data-label, .voyage, .notice, .composer-status, .intro-error, .impacts-empty, .chart-skip { font-family: var(--pixel-font); font-size: 20px; line-height: 1.15; }
+
+/* Composer morph from centre to workspace on first submit */
+::view-transition-group(composer) { animation-duration: 450ms; animation-timing-function: var(--ease-drawer); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 250ms; }
+
+/* Narrow or short screens: normal vertical flow, narrative above the graph */
+@media (max-width: 760px), (max-height: 620px) {
+  .stage { height: auto; min-height: 0; }
+  .narrative { max-height: none; }
+  .chart-plot { flex: none; height: 300px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .composer-pending::before { animation: none; }
+  .notice, .narrative, .note-small, .instructions { transition: opacity 150ms ease; @starting-style { opacity: 0; transform: none; } }
+  .note-small:hover { transform: none; }
+}
