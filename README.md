@@ -27,9 +27,10 @@ python tools/export_contracts.py --check
 python tools/build_example_fixtures.py --check
 python tools/check_fixtures.py
 python -m unittest discover -s tests -p "test_*.py" -v
-node --test tests/frontend-contract.test.mjs
+node --test tests/frontend-contract.test.mjs tests/web-ui.test.mjs
 python -m uvicorn api.fixture_app:app --host 127.0.0.1 --port 8000
+cd web && npm install && npm run dev   # second terminal: UI at http://127.0.0.1:5173
 ```
 
 Use Python 3.10+ and Node 22.18+. Open http://127.0.0.1:8000/docs for the fixture API.
-The React UI, durable backend and live provider adapters still need implementation.
+The durable backend and live provider adapters still need implementation.

@@ -1,0 +1,206 @@
+/* Global shell, layout and workspace styles (Orion). Chart styles live in features/chart/chart.css. */
+
+:root {
+  color-scheme: dark;
+  --text: #f5f5f5;
+  --text-muted: #a3a3a3;
+  --line: #404040;
+  --accent: #fbbf24;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-drawer: cubic-bezier(0.32, 0.72, 0, 1);
+  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 15px;
+  line-height: 1.45;
+  color: var(--text);
+  background: #000;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: #000; }
+a { color: #7dd3fc; }
+h1, h2 { margin: 0; font-size: inherit; font-weight: 600; }
+
+.visually-hidden {
+  position: absolute; width: 1px; height: 1px; overflow: hidden;
+  clip-path: inset(50%); white-space: nowrap;
+}
+
+/* Buttons */
+.button {
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: var(--text);
+  color: #0a0a0a;
+  font: inherit;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: transform 160ms var(--ease-out), opacity 150ms ease;
+}
+.button:active:not(:disabled) { transform: scale(0.97); }
+.button:disabled { opacity: 0.4; cursor: default; }
+.button-quiet { background: transparent; color: var(--text); border-color: var(--line); font-weight: 400; }
+@media (hover: hover) and (pointer: fine) {
+  .button-quiet:hover:not(:disabled) { border-color: var(--text-muted); }
+}
+:focus-visible { outline: 2px solid #7dd3fc; outline-offset: 2px; }
+
+/* Empty screen: black viewport, one centred composer */
+.intro {
+  min-height: 100dvh;
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 12px;
+  padding: 16px;
+  background: #000;
+}
+.intro .composer { width: min(760px, calc(100vw - 32px)); }
+.intro-error { color: var(--text-muted); }
+
+/* Composer */
+.composer { view-transition-name: composer; display: grid; gap: 6px; width: min(760px, 100%); margin: 0 auto; }
+.composer-label { font-size: 13px; color: var(--text-muted); transition: color 200ms ease; }
+.composer-box {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: rgba(10, 10, 10, 0.9);
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+.composer-box:focus-within { border-color: var(--text-muted); }
+.composer[data-replacing] .composer-label { color: var(--accent); }
+.composer[data-replacing] .composer-box { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.18); }
+.composer-input {
+  flex: 1;
+  min-height: 40px;
+  max-height: 30vh;
+  field-sizing: content;
+  resize: none;
+  padding: 8px 6px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px; /* 16px stops iOS zooming on focus */
+}
+.composer-input:focus-visible { outline: none; }
+.composer-status { min-height: 1.45em; font-size: 13px; color: var(--text-muted); }
+.composer-pending::before {
+  content: "";
+  display: inline-block;
+  width: 7px; height: 7px; margin-right: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: pulse 900ms ease-in-out infinite alternate;
+}
+@keyframes pulse { from { opacity: 0.25; } to { opacity: 1; } }
+
+.notice {
+  margin-top: 6px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: rgba(23, 23, 23, 0.9);
+  color: var(--text);
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(4px); }
+}
+.notice[data-tone="error"] { border-color: rgba(248, 113, 113, 0.6); }
+.notice p { margin: 0 0 6px; }
+.notice-choices { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 6px; }
+.notice-choices .button { white-space: normal; text-align: left; }
+
+/* Workspace: graph + narrative, scale, composer near 80% height, impacts below */
+.workspace {
+  position: relative;
+  isolation: isolate;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px 16px 32px;
+}
+.workspace-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 14px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+.workspace-bar h1 { color: var(--text); font-size: 15px; }
+.workspace-bar .button { margin-left: auto; }
+.data-label { padding: 2px 8px; border: 1px solid var(--accent); border-radius: 999px; color: var(--accent); }
+
+.stage {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  /* Grows instead of overlapping when the panel is tall; otherwise keeps the composer near 80% height. */
+  min-height: max(calc(80svh - 130px), 380px);
+}
+
+/* Centred above the graph, in flow: the chart takes only the height left over, so they never overlap. */
+.narrative {
+  flex: none;
+  width: min(680px, 100%);
+  max-height: 22svh;
+  margin: 0 auto 10px;
+  overflow: auto;
+  padding: 12px 14px;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 12px;
+  background: rgba(10, 10, 10, 0.55);
+  backdrop-filter: blur(10px);
+  font-size: 13px;
+  transition: opacity 200ms var(--ease-out), transform 200ms var(--ease-out);
+  @starting-style { opacity: 0; transform: translateY(4px); }
+}
+.narrative h2 { display: flex; justify-content: space-between; gap: 8px; font-size: 14px; }
+.narrative p { margin: 6px 0 0; }
+.narrative a { display: inline-block; margin-right: 8px; }
+.narrative-scope, .narrative-meta { color: var(--text-muted); }
+.narrative-warning { color: #fca5a5; }
+.narrative-trend[data-trend="gain"] { color: #86efac; }
+.narrative-trend[data-trend="loss"] { color: #fca5a5; }
+.narrative-trend[data-trend="flat"], .narrative-trend[data-trend="unknown"] { color: var(--text-muted); }
+
+.impacts, .impacts-empty { width: min(760px, 100%); margin: 0 auto; }
+.impacts { display: grid; gap: 6px; padding: 0; list-style: none; }
+.impacts li { display: flex; flex-wrap: wrap; gap: 4px 10px; padding: 8px 12px; border-radius: 10px; background: rgba(10, 10, 10, 0.5); }
+.impacts-detail, .impacts-empty { color: var(--text-muted); font-size: 13px; }
+
+/* Background: muted outcome gradient; a team GIF can replace it via VITE_BACKGROUND_ASSET */
+.backdrop { position: fixed; inset: 0; z-index: -1; background: #050505; }
+.backdrop > div { position: absolute; inset: 0; opacity: 0; transition: opacity 600ms ease; }
+.backdrop-gain { background: radial-gradient(120% 80% at 50% 0%, rgba(22, 101, 52, 0.55), transparent 70%); }
+.backdrop-loss { background: radial-gradient(120% 80% at 50% 0%, rgba(127, 29, 29, 0.55), transparent 70%); }
+.backdrop-flat { background: radial-gradient(120% 80% at 50% 0%, rgba(64, 64, 64, 0.45), transparent 70%); }
+.workspace[data-trend="gain"] .backdrop-gain,
+.workspace[data-trend="loss"] .backdrop-loss,
+.workspace[data-trend="flat"] .backdrop-flat,
+.workspace[data-trend="unknown"] .backdrop-flat { opacity: 1; }
+.backdrop-asset { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0.35; }
+
+/* Composer morph from centre to workspace on first submit */
+::view-transition-group(composer) { animation-duration: 450ms; animation-timing-function: var(--ease-drawer); }
+::view-transition-old(root), ::view-transition-new(root) { animation-duration: 250ms; }
+
+/* Narrow or short screens: normal vertical flow, narrative above the graph */
+@media (max-width: 760px), (max-height: 620px) {
+  .stage { height: auto; min-height: 0; }
+  .narrative { max-height: none; }
+  .chart-plot { flex: none; height: 300px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .backdrop > div { transition: none; }
+  .composer-pending::before { animation: none; }
+  .notice, .narrative { transition: opacity 150ms ease; @starting-style { opacity: 0; transform: none; } }
+}
