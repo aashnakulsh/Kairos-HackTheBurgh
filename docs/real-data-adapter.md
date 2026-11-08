@@ -59,6 +59,27 @@ Without configuration the relay returns a typed 503 and the basic panel/forecast
 remains usable. The frontend integration patch includes the caller and display.
 See [the exact API flow and request fields](frontend-backend-contract.md#forecast--frontend--openai--frontend).
 
+## Optional natural-language CPI interpretation
+
+`api.app` defaults to the five exact presets. Set `PARSER_PROVIDER=auto` before
+starting the server to try OpenAI for other wording, followed by local Ollama if
+OpenAI is unavailable. Set `PARSER_PROVIDER=ollama` for local-only interpretation.
+Exact preset text makes no provider call in either mode. The server needs
+`OPENAI_API_KEY` and an available `OPENAI_MODEL` for the OpenAI attempt; the key
+must stay server-side. Ollama uses `OLLAMA_BASE_URL` and `OLLAMA_MODEL` (default
+`qwen3.5:9b`) and must already be running with that model installed. The parser
+timeouts default to 5 and 12 seconds respectively. Restart the backend after
+changing these environment variables.
+
+Natural wording remains limited to the five June/July/August 2025 CPI
+instructions listed below. Provider output is validated against the same schema,
+checked against the user's explicit dates and values, then restricted to those
+five canonical instructions. Missing or conflicting values and unavailable
+providers produce a clarification with the preset choices. Commit and replay
+never call the text provider. This path has passed mocked provider and HTTP tests;
+it still needs a real OpenAI/Ollama and browser check on the Mac before being
+called live-verified.
+
 ## Run the research API
 
 The inputs and weights already present on this Mac are sufficient. From the
@@ -142,7 +163,7 @@ The first event must remain June 11. Replacing a later event uses the earlier ol
 
 `GET /api/timelines/{id}/revisions/{revision}/reveal` returns matching-index actual observations for that saved revision's simulated dates, source attribution and explicit gaps. It performs no inference or writes. Missing or corrupt local actuals return an explicit failure; saved forecasts remain unchanged.
 
-The v1 wire enum has only fixture/live; research uses live with an explicit local historical research label. This is not a streaming feed or approval for public display. The deterministic parser makes no paid calls. General free-form parsing, deletion through the real API and automatic empirical fallback remain unsupported.
+The v1 wire enum has only fixture/live; research uses live with an explicit local historical research label. This is not a streaming feed or approval for public display. The default deterministic parser makes no paid calls. Broad event parsing, deletion through the real API and automatic empirical fallback remain unsupported.
 
 The replay model identity now ends in `cpu-cpi-v2`. Existing v1 timelines remain readable, but cannot be edited using v2. Use a new timeline/database for the new behavior; do not delete old databases. Dataset changes similarly require new timelines.
 

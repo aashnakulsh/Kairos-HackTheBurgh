@@ -5,6 +5,7 @@ from uuid import uuid4
 from api.backend_errors import BackendError
 from api.contracts import Instruction, ParsedScenario, ReadyDraft
 from api.preset_parser import PresetParser
+from api.provider_parser import ScenarioParserRouter
 from api.replay import candidate
 from api.sqlite_store import SQLiteStore, body_hash, encode
 from api.synthetic_forecast import LABEL, SyntheticAdapter
@@ -19,7 +20,8 @@ class DurableService:
             from api.research_backend import ResearchBackend
             self.research = ResearchBackend(settings, adapter)
         self.store = SQLiteStore(settings.sqlite_path)
-        self.parser = parser or (self.research.parser if self.research else PresetParser())
+        self.parser = parser or (ScenarioParserRouter(settings) if settings.parser_provider != "deterministic"
+                                  else (self.research.parser if self.research else PresetParser()))
         self.adapter = self.research.adapter if self.research else (adapter or SyntheticAdapter())
         self.now = now or (lambda: datetime.now(timezone.utc))
 
