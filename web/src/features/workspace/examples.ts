@@ -1,3 +1,5 @@
+import { promptKey } from "./format.ts";
+
 /** Situational example prompts for the composer placeholder: everyday events, no jargon or figures to decode.
  * The server-side parser turns wording like this into canonical instructions. */
 export const EXAMPLES = [
@@ -13,8 +15,10 @@ export const EXAMPLES = [
   "What if the U.S. and China signed a trade peace deal in 2018?",
 ];
 
-/** A random example, never the same one twice in a row. */
-export const randomExample = (not?: string) => {
-  const pool = EXAMPLES.filter(e => e !== not);
-  return pool[Math.floor(Math.random() * pool.length)];
+/** A random example: never the same one twice in a row, and never one already used this journey (while any remain). */
+export const randomExample = (not?: string, used: string[] = []) => {
+  const spent = new Set(used.map(promptKey));
+  const fresh = EXAMPLES.filter(e => !spent.has(promptKey(e)));
+  const pool = (fresh.length ? fresh : EXAMPLES).filter(e => e !== not);
+  return pool[Math.floor(Math.random() * pool.length)] ?? EXAMPLES[0];
 };

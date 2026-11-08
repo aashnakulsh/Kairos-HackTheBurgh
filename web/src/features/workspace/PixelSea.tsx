@@ -49,8 +49,8 @@ function mix(a: string, b: string, t: number) {
 }
 const clamp = (v: number, a: number, b: number) => Math.max(a, Math.min(b, v));
 /** Same three-sine swell as the original, in CSS pixels. */
-const wave = (x: number, t: number, amp: number, spd: number) =>
-  amp * (Math.sin(x * 0.011 + t * 1.1 * spd) * 0.6 + Math.sin(x * 0.026 - t * 1.6 * spd) * 0.3 + Math.sin(x * 0.004 + t * 0.6) * 0.5);
+const wave = (x: number, t: number, amp: number, spd: number, ripple = 0.3) =>
+  amp * (Math.sin(x * 0.011 + t * 1.1 * spd) * 0.6 + Math.sin(x * 0.026 - t * 1.6 * spd) * ripple + Math.sin(x * 0.004 + t * 0.6 * spd) * 0.5);
 
 export function PixelSea({ mode, mood, progress, reducedMotion }: { mode: SeaMode; mood: number; progress: number; reducedMotion: boolean }) {
   const ref = useRef<HTMLCanvasElement>(null);
@@ -97,9 +97,11 @@ export function PixelSea({ mode, mood, progress, reducedMotion }: { mode: SeaMod
       const m = s.mood, k = (m + 1) / 2, storm = clamp(-m, 0, 1), sun = clamp(m, 0, 1);
       const lines = frameLines();
       const wy = Math.round(lines.sea);
-      // Storms: taller swells that roll slower and heavier (calm 1.0 → full storm 0.55 speed).
-      const amp = 8 + storm * 84 + sun * 3, spd = 1 - storm * 0.45;
-      const surface = (x: number, layer = 0) => wy + layer * 5 + wave(x * PX + layer * 90, T - layer * 0.35, amp * (1 - layer * 0.2), spd) / PX;
+      // Storms: taller, slower, smoother swells. The short choppy ripple fades out as the storm grows,
+      // so big waves roll instead of vibrating (calm speed 1.0 → full storm 0.5).
+      const amp = 8 + storm * 48 + sun * 3, spd = 1 - storm * 0.5, ripple = 0.3 * (1 - storm * 0.85);
+      const swell = (x: number, t = T) => wave(x, t, amp, spd, ripple);
+      const surface = (x: number, layer = 0) => wy + layer * 5 + wave(x * PX + layer * 90, T - layer * 0.35, amp * (1 - layer * 0.2), spd, ripple) / PX;
 
       // Sky: eight flat bands, the pixel-art stand-in for a gradient.
       const top = mix("#232b36", "#2c6cb0", k), horizon = mix("#5b6674", "#7cc4ea", k);
@@ -146,7 +148,7 @@ export function PixelSea({ mode, mood, progress, reducedMotion }: { mode: SeaMod
       const column = (x: number) => {
         const y0 = Math.round(surface(x));
         for (let band = 0; y0 + band * 6 < H; band++) rect(x, y0 + band * 6, 1, 6, mix(front, abyss, Math.min(band / 7, 1)));
-        if (storm > 0.25 && wave(x * PX, T, amp, spd) < -amp * 0.45) rect(x, y0, 1, 1, `rgba(255,255,255,${storm * 0.8})`);
+        if (storm > 0.25 && swell(x * PX) < -amp * 0.55) rect(x, y0, 1, 1, `rgba(255,255,255,${storm * 0.8})`);
       };
       for (const [layer, color] of [[2, mix("#0b1823", "#0b5288", k)], [1, mix("#0c1a27", "#1c76b0", k)]] as const) {
         for (let x = 0; x < W; x++) rect(x, surface(x, layer), 1, 14, color);
@@ -188,8 +190,8 @@ export function PixelSea({ mode, mood, progress, reducedMotion }: { mode: SeaMod
       }
 
       // Pirate ship: rides the swell, tilts by shearing columns (rotation would blur the pixels).
-      const slope = clamp(((wave((shipX + 4) * PX, T, amp, spd) - wave((shipX - 4) * PX, T, amp, spd)) / PX / 8) * 0.9
-        + (storm > 0.2 && !still ? Math.sin(T * 3) * 0.05 * storm : 0), -0.4, 0.4); // steeper shear shreds the sprite
+      const slope = clamp(((swell((shipX + 4) * PX) - swell((shipX - 4) * PX)) / PX / 8) * 0.9
+        + (storm > 0.2 && !still ? Math.sin(T * 1.2) * 0.03 * storm : 0), -0.3, 0.3); // gentle roll; steeper shear shreds the sprite
       const left = Math.round(shipX - shipW / 2);
       const mastTip = surface(shipX) - ABOVE_WATER * scale;
       SHIP.forEach((row, r) => [...row].forEach((ch, c) => {

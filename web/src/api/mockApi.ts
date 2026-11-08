@@ -1,7 +1,7 @@
 import type { Capabilities, CommitRequest, CreateTimelineRequest, Instruction, InterpretRequest, Panel, Point,
   Problem, Prompt, ReadyDraft, RevealResponse, RunResponse } from "../generated/contracts.ts";
 import { ApiError, createApi, type DeletePromptRequest, type JourneySummary } from "./client.ts";
-import { segmentTrend } from "../features/workspace/format.ts";
+import { nextDisplayNumber, segmentTrend } from "../features/workspace/format.ts";
 import { MAX_PROMPTS } from "../config.ts";
 
 // shortcut: temporary in-browser stand-in for the backend so any free-text prompt redraws a fake
@@ -198,7 +198,8 @@ export function createMockApi(): ReturnType<typeof createApi> {
         return problem("unsupported", "prompt_limit", `A timeline holds up to ${MAX_PROMPTS} prompts. Delete or replace one.`, run.revision);
       }
       const prompt: Prompt = {
-        ...draft.instruction, id: old?.id ?? `p${tl.next}`, display_number: old?.display_number ?? tl.next,
+        // IDs stay unique forever (creation order); the shown number reuses the lowest free slot.
+        ...draft.instruction, id: old?.id ?? `p${tl.next}`, display_number: old?.display_number ?? nextDisplayNumber(run.prompts),
         creation_order: old?.creation_order ?? tl.next, text: draft.text, evidence_ids: [], resolved_value: null, status: "supported",
       };
       if (!old) tl.next++;

@@ -2,12 +2,11 @@ import { useEffect, useState, useSyncExternalStore, type MouseEvent } from "reac
 import { flushSync } from "react-dom";
 import { Chart } from "./features/chart/Chart.tsx";
 import { Timeline } from "./features/chart/Timeline.tsx";
-import { markers } from "./features/chart/geometry.ts";
 import { Composer } from "./features/workspace/Composer.tsx";
 import { EndScreen } from "./features/workspace/EndScreen.tsx";
 import { Instructions } from "./features/workspace/Instructions.tsx";
 import { ImpactList, NarrativePanel, NoteRow } from "./features/workspace/Panels.tsx";
-import { segmentTrend } from "./features/workspace/format.ts";
+import { nextDisplayNumber, segmentTrend } from "./features/workspace/format.ts";
 import { useWorkspace } from "./features/workspace/useWorkspace.ts";
 import { PixelSea, type SeaMode } from "./features/workspace/PixelSea.tsx";
 
@@ -18,7 +17,6 @@ const useReducedMotion = () => useSyncExternalStore(
 
 // Background layer config: set VITE_BACKGROUND_ASSET=/your.gif (in web/public) to replace the pixel sea.
 const BACKGROUND_ASSET = import.meta.env.VITE_BACKGROUND_ASSET as string | undefined;
-const ARRIVAL_MS = 2600; // let the last leg draw and the ship reach the finishing dock before the end screen
 
 /** Any gain is sunny, any loss stormy; bigger moves make stronger weather. */
 const moodOf = (change: number | null) =>
@@ -33,20 +31,15 @@ export function App() {
   const points = ws.run?.series.points ?? [];
   const trend = segmentTrend(points, shown?.id ?? null);
   const replacing = prompts.find(p => p.id === ws.selectedId)?.display_number ?? null;
-  const greyYears = new Set(markers(prompts).flatMap(m => m.years));
   const mood = moodOf(trend.direction === "flat" ? 0 : trend.change);
   const outlook = mood > 0 ? "☀ Sunny" : mood < 0 ? "⛈ Stormy" : "Calm";
 
-  // Game phases: start screen → voyage (one prompt per leg) → end screen once every chosen leg is sailed.
+  // Game phases: start screen → voyage (one prompt per leg) → end screen, only when the player chooses
+  // "End journey" after every leg is written. Never forced: they may keep editing prompts first.
   const finished = ws.started && ws.legs !== null && prompts.length >= ws.legs;
-  const [arrived, setArrived] = useState(false);
-  const [reviewing, setReviewing] = useState(false);
-  useEffect(() => {
-    if (!finished) { setArrived(false); setReviewing(false); return; }
-    const id = setTimeout(() => setArrived(true), reducedMotion ? 0 : ARRIVAL_MS);
-    return () => clearTimeout(id);
-  }, [finished]);
-  const ended = finished && arrived && !reviewing;
+  const [endRequested, setEndRequested] = useState(false);
+  useEffect(() => { if (!finished) setEndRequested(false); }, [finished]); // a deleted leg reopens the voyage
+  const ended = finished && endRequested;
   useEffect(() => { if (ended) ws.requestSummary(); }, [ended, ws.run?.revision]);
 
   // The first submit morphs the centred composer into its workspace slot (a one-time transition).
@@ -73,6 +66,7 @@ export function App() {
 
   const composer = (
     <Composer text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} legs={ws.legs}
+      nextNumber={nextDisplayNumber(prompts)} used={ws.used}
       pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
       onChange={ws.setText} onLegsChange={ws.setLegs} onSubmit={submit} onCancel={ws.cancelSelection} />
   );
@@ -96,7 +90,7 @@ export function App() {
     return (
       <main className="endscreen">
         {backdrop("end", moodOf(net), 1)}
-        <EndScreen summary={ws.summary} onRestart={ws.newJourney} onReview={() => setReviewing(true)} />
+        <EndScreen summary={ws.summary} onRestart={ws.newJourney} onReview={() => setEndRequested(false)} />
       </main>
     );
   }
@@ -114,16 +108,15 @@ export function App() {
           disabled={!ws.reveal && !points.some(p => p.kind === "simulated")}>
           {ws.reveal ? "Hide actual history" : "Reveal actual history"}
         </button>
-        {finished && <button type="button" className="button button-quiet" onClick={() => setReviewing(false)}>Captain's log</button>}
       </header>
+      {finished && <button type="button" className="button end-journey" onClick={() => setEndRequested(true)}>End journey</button>}
       <section className="stage">
         {selected
           ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} />
           : !!prompts.length && <NoteRow prompts={prompts} trends={trends} onSelect={ws.selectPrompt} />}
-        <Chart run={ws.run} draw={ws.draw} viewport={ws.viewport} selectedId={ws.selectedId} playhead={ws.playhead}
+        <Chart run={ws.run} draw={ws.draw} viewport={ws.viewport} selectedId={ws.selectedId}
           reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.deletePrompt} />
-        <Timeline viewport={ws.viewport} greyYears={greyYears} points={points} playhead={ws.playhead}
-          onViewportChange={ws.setViewport} onPlayheadChange={ws.setPlayhead} />
+        <Timeline viewport={ws.viewport} onViewportChange={ws.setViewport} />
       </section>
       {composer}
       <ImpactList panel={shown && ws.run?.panels[shown.id]} />

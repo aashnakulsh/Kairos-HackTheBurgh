@@ -23,7 +23,18 @@ export function formatImpact(i: Impact): { text: string; detail: string } {
   return { text: `${i.emoji} ${i.name} ${sign}${amount}`, detail: `${METRIC[i.metric_kind]}${comparator}, ${i.horizon}` };
 }
 
-export type Trend = { direction: "gain" | "loss" | "flat" | "unknown"; change: number | null };
+/** A new prompt takes the lowest free number, so deleting prompt 1 makes the next prompt "prompt 1" again. */
+export function nextDisplayNumber(prompts: { display_number: number }[]): number {
+  const used = new Set(prompts.map(p => p.display_number));
+  let n = 1;
+  while (used.has(n)) n++;
+  return n;
+}
+
+/** Key for the no-repeat rule: case, spacing and trailing punctuation don't make a prompt new. */
+export const promptKey = (text: string) => text.trim().toLowerCase().replace(/\s+/g, " ").replace(/[\s.!?…]+$/, "");
+
+export type Trend ={ direction: "gain" | "loss" | "flat" | "unknown"; change: number | null };
 
 /** Terminal median of a prompt's simulated segment vs the market level entering it. */
 export function segmentTrend(points: Point[], promptId: string | null): Trend {

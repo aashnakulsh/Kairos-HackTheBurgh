@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import type { Notice } from "./useWorkspace.ts";
 import { MAX_PROMPTS } from "../../config.ts";
 import { randomExample } from "./examples.ts";
+import { promptKey } from "./format.ts";
 
 
 export interface ComposerProps {
@@ -9,7 +10,11 @@ export interface ComposerProps {
   replacing: number | null;
   /** Prompts so far, or null on the start screen (which shows the legs picker and "Start journey"). */
   count: number | null;
+  /** Number the next new prompt will get (lowest free slot). */
+  nextNumber: number;
   legs: number | null;
+  /** Prompts already used this journey: examples skip them. */
+  used: string[];
   pending: string | null;
   notice: Notice | null;
   reducedMotion: boolean;
@@ -20,17 +25,18 @@ export interface ComposerProps {
 }
 
 /** Enter submits, Shift+Enter adds a line, Escape cancels a replacement. */
-export function Composer({ text, replacing, count, legs, pending, notice, reducedMotion, onChange, onLegsChange, onSubmit, onCancel }: ComposerProps) {
+export function Composer({ text, replacing, count, nextNumber, legs, used, pending, notice, reducedMotion, onChange, onLegsChange, onSubmit, onCancel }: ComposerProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
-  const [example, setExample] = useState(() => randomExample());
+  const [example, setExample] = useState(() => randomExample(undefined, used));
   const starting = count === null;
 
   // Swap the placeholder example every few seconds while the box is empty (text only, no motion).
   useEffect(() => {
     if (text) return;
-    const id = setInterval(() => setExample(e => randomExample(e)), 5000);
+    setExample(e => used.some(u => promptKey(u) === promptKey(e)) ? randomExample(e, used) : e); // just used it: swap now
+    const id = setInterval(() => setExample(e => randomExample(e, used)), 5000);
     return () => clearInterval(id);
-  }, [text]);
+  }, [text, used]);
 
   // Selecting a marker brings the composer into view with the old text ready to edit.
   useEffect(() => {
@@ -58,7 +64,7 @@ export function Composer({ text, replacing, count, legs, pending, notice, reduce
   const label = starting ? "Describe your first what-if"
     : replacing !== null ? action
     : legs !== null && count >= legs ? `All ${legs} prompts sailed · select one to replace, or delete one`
-    : `Describe a market what-if · prompt ${count + 1} of ${legs ?? MAX_PROMPTS}`;
+    : `Describe a market what-if · prompt ${nextNumber} of ${legs ?? MAX_PROMPTS}`;
 
   return (
     <form className="composer" data-replacing={replacing !== null || undefined}
@@ -66,7 +72,7 @@ export function Composer({ text, replacing, count, legs, pending, notice, reduce
       <label htmlFor="composer-input" className="composer-label">{label}</label>
       <div className="composer-box">
         <textarea id="composer-input" ref={ref} className="composer-input" rows={1} autoFocus
-          value={text} placeholder={`e.g. ${example}  ⇥ Tab to use`} aria-describedby="composer-tab-hint"
+          value={text} placeholder={`e.g. ${example} (Tab ⇥)`} aria-describedby="composer-tab-hint"
           onChange={event => onChange(event.target.value)} onKeyDown={onKeyDown} />
         {starting && (
           <label className="composer-legs">

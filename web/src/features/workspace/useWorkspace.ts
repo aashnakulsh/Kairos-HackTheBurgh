@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { applyRun } from "../../api/applyRun.ts";
 import { ApiError, createApi, type DeletePromptRequest, type JourneySummary } from "../../api/client.ts";
 import { MAX_PROMPTS } from "../../config.ts";
+import { promptKey } from "./format.ts";
 import { createMockApi } from "../../api/mockApi.ts";
 import type { Capabilities, CommitRequest, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
 import type { ChartProps } from "../chart/Chart.tsx";
@@ -10,6 +11,7 @@ import type { ChartProps } from "../chart/Chart.tsx";
 const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
 const STORAGE_KEY = "teamrelay.timeline_id";
 const LEGS_KEY = "teamrelay.legs";
+const USED_KEY = "teamrelay.used_prompts";
 
 export interface Notice {
   tone: "error" | "info";
@@ -39,8 +41,14 @@ export function useWorkspace() {
   const [pending, setPending] = useState<"Interpreting" | "Simulating" | "Deleting" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [reveal, setReveal] = useState<RevealResponse | null>(null);
-  const [playhead, setPlayhead] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
+  /** Every prompt submitted this journey (kept even after delete/replace); a repeat is refused. */
+  const [used, setUsedState] = useState<string[]>(() => { try { return JSON.parse(recalled(USED_KEY) ?? "[]"); } catch { return []; } });
+  const setUsed = (update: (list: string[]) => string[]) => setUsedState(prev => {
+    const next = update(prev);
+    remember(next.length ? JSON.stringify(next) : null, USED_KEY); // idempotent, so a repeated updater run is harmless
+    return next;
+  });
   /** Journey length chosen on the start screen (1…MAX_PROMPTS); null until chosen. Client-side game state. */
   const [legs, setLegsState] = useState<number | null>(() => Number(recalled(LEGS_KEY)) || null);
   const [summary, setSummary] = useState<JourneySummary | null>(null);
@@ -107,6 +115,8 @@ export function useWorkspace() {
     // Redraw only from changed_from whenever a graph is already on screen; a full draw only from an empty frame.
     install(next, true, result.series_mode === "suffix" || shownBefore ? result.changed_from : null);
     const newest = next.prompts.reduce((a, b) => (b.creation_order > a.creation_order ? b : a));
+    const committed = next.prompts.find(p => p.id === (replacing ?? newest.id));
+    if (committed) setUsed(list => [...list, committed.text]);
     setFocusId(replacing ?? newest.id);
     setSelectedId(null);
     setText("");
@@ -139,6 +149,11 @@ export function useWorkspace() {
       setNotice({ tone: "error", reason: `Choose how many prompts your journey has (1 to ${MAX_PROMPTS}).` });
       return;
     }
+    const repeat = used.find(u => promptKey(u) === promptKey(prompt));
+    if (repeat) {
+      setNotice({ tone: "error", reason: `You already used “${repeat}” on this journey. Try a different what-if; your text is kept.` });
+      return;
+    }
     if (!replacing && (runRef.current?.prompts.length ?? 0) >= legs) {
       setNotice({ tone: "error", reason: `Your journey has ${legs} prompt${legs === 1 ? "" : "s"}. Delete one (hover its label and press ×) or select one to replace. Your text is kept.` });
       return;
@@ -158,8 +173,7 @@ export function useWorkspace() {
       }
       timelineId = base.timeline_id;
       const draft = await api.interpret(timelineId, {
-        text: prompt, mode: replacing ? "replace" : "add", selected_prompt_id: replacing,
-        playhead, expected_revision: base.revision,
+        text: prompt, mode: replacing ? "replace" : "add", selected_prompt_id: replacing, expected_revision: base.revision,
       }, signal);
       if (mine !== seq.current) return;
       if (draft.status !== "ready") { setNotice({ tone: "error", reason: draft.reason, choices: draft.choices }); return; }
@@ -245,12 +259,13 @@ export function useWorkspace() {
     remember(null);
     setLegs(null);
     setRun(null); setDraw(null); setText(""); setSelectedId(null); setFocusId(null);
-    setPending(null); setNotice(null); setReveal(null); setSummary(null); setPlayhead(null); setStarted(false);
+    setPending(null); setNotice(null); setReveal(null); setSummary(null); setStarted(false);
+    setUsed(() => []); // a new journey starts a fresh no-repeat record
   };
 
   return {
     caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
-    pending, notice, reveal, playhead, setPlayhead, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
+    pending, notice, reveal, used, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
     legs, setLegs, summary, requestSummary, newJourney,
   };
 }

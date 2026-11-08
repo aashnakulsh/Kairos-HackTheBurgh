@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { applyRun } from "../web/src/api/applyRun.ts";
-import { clipPoints, domain, drawStart, markers, ms, pointAt, stackRows, yRange } from "../web/src/features/chart/geometry.ts";
+import { clipPoints, domain, drawStart, markers, ms, stackRows, yRange } from "../web/src/features/chart/geometry.ts";
 import { formatImpact, rankImpacts, segmentTrend } from "../web/src/features/workspace/format.ts";
 import { createMockApi, readDates } from "../web/src/api/mockApi.ts";
 import { MAX_PROMPTS } from "../web/src/config.ts";
@@ -123,12 +123,6 @@ test("clipping interpolates one head point between sessions, from observed into 
   assert.deepEqual(clipPoints(points, Infinity), points);
 });
 
-test("playhead reads cached points only", () => {
-  const points = journey().series.points;
-  assert.equal(pointAt(points, "2025-06-14").date, "2025-06-13");
-  assert.equal(pointAt(points, "2000-01-01"), null);
-});
-
 test("segment trend compares terminal median to the level entering the segment", () => {
   const points = journey().series.points;
   const trend = segmentTrend(points, "p1");
@@ -154,4 +148,24 @@ test("impacts: quantified first, max five, signed magnitude without double minus
   const qualitative = formatImpact({ ...base, name: "Freight", emoji: "🚚", exposure: "indirect", direction: null,
     magnitude: null, unit: null, metric_kind: "qualitative" });
   assert.deepEqual(qualitative, { text: "🚚 Freight", detail: "possible indirect exposure" });
+});
+
+test("next prompt takes the lowest free number; repeats are matched loosely", async () => {
+  const { nextDisplayNumber, promptKey } = await import("../web/src/features/workspace/format.ts");
+  assert.equal(nextDisplayNumber([]), 1);
+  assert.equal(nextDisplayNumber([{ display_number: 2 }, { display_number: 3 }]), 1);
+  assert.equal(nextDisplayNumber([{ display_number: 1 }, { display_number: 3 }]), 2);
+  assert.equal(promptKey("  What if  Apple went BANKRUPT in 1997?! "), promptKey("what if apple went bankrupt in 1997"));
+  assert.notEqual(promptKey("crash in 2008"), promptKey("crash in 2009"));
+  // Mock: deleting prompt 1 then adding gives the new prompt number 1 again (with a new unique ID).
+  const api = createMockApi();
+  let run = applyRun(null, await api.create({ target_id: "SPY", request_id: "n1" }));
+  const add = async text => {
+    const d = await api.interpret(run.timeline_id, { text, mode: "add", expected_revision: run.revision });
+    run = applyRun(run, await api.commit(run.timeline_id, { draft_id: d.draft_id, expected_revision: run.revision, request_id: `n${run.revision}` }), `n${run.revision}`);
+  };
+  await add("boom in 1990");
+  run = applyRun(run, await api.deletePrompt(run.timeline_id, { prompt_id: "p1", expected_revision: run.revision, request_id: "del" }), "del");
+  await add("crash in 2001");
+  assert.deepEqual(run.prompts.map(p => [p.id, p.display_number]), [["p2", 1]]);
 });

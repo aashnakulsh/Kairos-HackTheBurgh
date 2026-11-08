@@ -8,6 +8,7 @@ import "./chart.css";
 export const MARGIN = { l: 56, r: 24, b: 28 };
 const LABEL_ROW = 24;
 const LABEL_GAP = 84;
+const CHART_FONT = "Helvetica Neue, Helvetica, Arial, sans-serif";
 /** y-axis value where the background sea's surface sits. */
 const SEA_LEVEL = 2000;
 const TOOLTIP_HALF = 130; // half of .chart-tooltip's 240px max-width, plus a little air
@@ -20,7 +21,6 @@ export interface ChartProps {
   draw: { revision: number; from: string | null; animate: boolean } | null;
   viewport: Viewport;
   selectedId: string | null;
-  playhead: string | null;
   reveal: RevealResponse | null;
   reducedMotion: boolean;
   onSelectPrompt: (id: string) => void;
@@ -33,7 +33,7 @@ const only = (points: Point[], keep: (p: Point, next: Point | undefined) => bool
 const simulatedish = (p: Point, next: Point | undefined) =>
   p.kind === "simulated" || (p.kind === "observed" && next?.kind === "simulated");
 
-export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reducedMotion, onSelectPrompt, onDeletePrompt }: ChartProps) {
+export function Chart({ run, draw, viewport, selectedId, reveal, reducedMotion, onSelectPrompt, onDeletePrompt }: ChartProps) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
   const [head, setHead] = useState(Infinity);
@@ -87,7 +87,6 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
   useEffect(() => {
     const shown = clipPoints(points, head);
     const x = shown.map(p => p.date);
-    const grey = "rgba(163, 163, 163, 0.55)";
     const traces: Data[] = [
       { x, y: only(shown, simulatedish, "q90"), mode: "lines", line: { width: 0 }, hoverinfo: "skip", name: "90th percentile" },
       { x, y: only(shown, simulatedish, "q10"), mode: "lines", line: { width: 0 }, fill: "tonexty",
@@ -100,11 +99,15 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
     if (reveal) traces.push({ x: reveal.series.points.map(p => p.date), y: reveal.series.points.map(p => p.value),
       mode: "lines", name: "Actual (revealed)", line: { color: "#fbbf24", width: 1.5 } });
 
+    // Every prompt line is the same pink dash, selected or not (the yellow label shows selection).
+    const line = { color: "#f472b6", width: 1.5, dash: "dash" as const };
     const shapes: Partial<Shape>[] = marks.flatMap(m => {
-      const line = { color: m.id === selectedId ? "rgba(255,255,255,0.9)" : grey, width: m.id === selectedId ? 2 : 1, dash: "dash" as const };
       const edge = (day: string) => ({ type: "line" as const, xref: "x" as const, yref: "paper" as const, x0: day, x1: day, y0: 0, y1: 1, line });
-      if (!m.end) return [edge(m.start)];
-      return [{ type: "rect" as const, xref: "x" as const, yref: "paper" as const, x0: m.start, x1: m.end, y0: 0, y1: 1,
+      // The prompt's semantic year(s), greyed as a thin strip along the plot's bottom edge.
+      const years = m.years.map(y => ({ type: "rect" as const, xref: "x" as const, yref: "paper" as const, layer: "below" as const,
+        x0: `${y}-01-01`, x1: `${y + 1}-01-01`, y0: 0, y1: 0.03, fillcolor: "rgba(163, 163, 163, 0.55)", line: { width: 0 } }));
+      if (!m.end) return [...years, edge(m.start)];
+      return [...years, { type: "rect" as const, xref: "x" as const, yref: "paper" as const, x0: m.start, x1: m.end, y0: 0, y1: 1,
         fillcolor: "rgba(163, 163, 163, 0.10)", line: { width: 0 } }, edge(m.start), edge(m.end)];
     });
     if (forkDate) shapes.push({ type: "line", xref: "x", yref: "paper", x0: forkDate, x1: forkDate, y0: 0, y1: 1,
@@ -116,17 +119,19 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
       margin: { ...MARGIN, t: top },
       paper_bgcolor: "rgba(0,0,0,0)",
       plot_bgcolor: "rgba(0,0,0,0.25)",
-      font: { color: "#d4d4d4", family: "inherit", size: 12 },
+      // A concrete family, not "inherit": Plotly measures label text with it, so boxes fit their values.
+      font: { color: "#d4d4d4", family: CHART_FONT, size: 12 },
       showlegend: false,
       hovermode: "x unified",
-      hoverlabel: { bgcolor: "#171717", bordercolor: "#404040" },
+      // namelength -1: never truncate "Simulated median" / "Observed"; larger text so the whole value shows.
+      hoverlabel: { bgcolor: "#4a2a10", bordercolor: "#7a4a22", namelength: -1, font: { family: CHART_FONT, size: 14, color: "#fbbf24" } },
       xaxis: { type: "date", range: [isoDay(range[0]), isoDay(range[1])], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)" },
-      yaxis: { range: [yLo, yHi], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+      yaxis: { range: [yLo, yHi], hoverformat: ",.2f", fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
       shapes,
       annotations: forkDate ? [{ x: forkDate, xref: "x", yref: "paper", y: 0, yanchor: "bottom", xanchor: "left",
         text: "simulated →", showarrow: false, font: { color: "#7dd3fc", size: 11 } }] : [],
     }, { displayModeBar: false });
-  }, [run, head, range[0], range[1], selectedId, reveal, top, width, height]); // the playhead is an HTML overlay: scrubbing never repaints Plotly
+  }, [run, head, range[0], range[1], selectedId, reveal, top, width, height]);
 
   const caption = run && <>
     <span>{run.series.target_id} · indexed level ({run.series.base_date} = {run.series.base_value})</span>
@@ -165,8 +170,6 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
               onClick={() => onDeletePrompt(m.id)}>×</button>
           </div>
         ))}
-        {playhead && ms(playhead) >= range[0] && ms(playhead) < range[1] &&
-          <div className="chart-playhead" style={{ left: xOf(playhead), top }} aria-hidden="true" />}
       </div>
     </figure>
   );

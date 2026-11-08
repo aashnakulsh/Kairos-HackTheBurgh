@@ -88,8 +88,3 @@ export function yRange(points: Point[]): [number, number] {
   const pad = Math.max((hi - lo) * 0.08, 0.5);
   return [lo - pad, hi + pad];
 }
-
-/** Cached value at the playhead: the last point on or before it. Never interpolates or fetches. */
-export function pointAt(points: Point[], day: string): Point | null {
-  return points.filter(p => p.date <= day).at(-1) ?? null;
-}

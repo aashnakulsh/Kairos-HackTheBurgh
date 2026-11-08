@@ -6,7 +6,7 @@ export function Instructions() {
   const dialog = useRef<HTMLDialogElement>(null);
   return (
     <>
-      <button type="button" className="button button-quiet instructions-open" onClick={() => dialog.current?.showModal()}>
+      <button type="button" className="button instructions-open" onClick={() => dialog.current?.showModal()}>
         How to play
       </button>
       <dialog ref={dialog} className="instructions" aria-labelledby="instructions-title"
@@ -29,7 +29,8 @@ export function Instructions() {
               <li>A short note appears above the chart for each prompt. Click a note to unroll its full description and more information.</li>
               <li>Clicking a prompt's label or note also lets you rewrite it. Hover the label and press × to delete it. Click empty space to deselect.</li>
               <li>Stuck for ideas? Press Tab in the empty box to use the suggested example.</li>
-              <li>After your last prompt the ship docks, and the captain's log sums up your voyage.</li>
+              <li>Every prompt must be new: you can't reuse a what-if you've already sailed on this journey.</li>
+              <li>Once all your prompts are in, press <strong>End journey</strong> (bottom right) to dock and read the captain's log, or keep adjusting your prompts first.</li>
             </ol>
             <p className="scroll-label">For now the charts use a synthetic example, not real market data or a real forecast.</p>
             <div className="scroll-actions">
