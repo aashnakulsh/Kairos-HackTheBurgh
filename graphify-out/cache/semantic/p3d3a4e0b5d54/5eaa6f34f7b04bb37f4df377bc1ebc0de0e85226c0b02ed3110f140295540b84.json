@@ -1,0 +1,1 @@
+{"nodes": [{"id": "requirements_contracts", "label": "requirements-contracts.txt (pydantic, fastapi, httpx, jsonschema, uvicorn)", "file_type": "document", "source_file": "requirements-contracts.txt", "source_location": "L1", "source_url": null, "captured_at": null, "author": null, "contributor": null}], "edges": [], "hyperedges": []}
