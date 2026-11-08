@@ -5,6 +5,7 @@ import { applyRun } from "../web/src/api/applyRun.ts";
 import { clipPoints, domain, drawStart, markers, ms, pointAt, stackRows, yRange } from "../web/src/features/chart/geometry.ts";
 import { formatImpact, rankImpacts, segmentTrend } from "../web/src/features/workspace/format.ts";
 import { createMockApi, readDates } from "../web/src/api/mockApi.ts";
+import { MAX_PROMPTS } from "../web/src/config.ts";
 
 test("mock date guess accepts free wording and any year", () => {
   assert.deepEqual(readDates("What if inflation spiked in 2008?"), { precision: "year", start: "2008-01-01", end: "2008-12-31" });
@@ -41,6 +42,23 @@ test("mock: free-text prompts redraw from changed_from and keep the earlier pref
   assert.deepEqual(run.series.points, restored.series.points);
   const missing = await api.interpret(run.timeline_id, { text: "CPI jumps", mode: "add", expected_revision: run.revision });
   assert.equal(missing.status, "needs_clarification");
+
+  // Delete p1: p2 keeps its ID and permanent number; history repaints from p1's start.
+  const before = run;
+  const del = await api.deletePrompt(run.timeline_id, { prompt_id: "p1", expected_revision: run.revision, request_id: "d1" });
+  run = applyRun(run, del, "d1");
+  assert.equal(del.changed_from, "2003-01-06");
+  assert.deepEqual(run.prompts.map(p => [p.id, p.display_number]), [["p2", 2]]);
+  assert.deepEqual(run.series.points.filter(p => p.date < "2003-01-06"), before.series.points.filter(p => p.date < "2003-01-06"));
+  assert.ok(run.series.points.filter(p => p.date < "2015-01-01").every(p => p.kind === "observed"));
+
+  // MAX_PROMPTS caps active prompts (p2 + four more = 5); a sixth is refused without a new revision.
+  for (const year of [1985, 1990, 1999, 2020]) await send(`boom in ${year}`);
+  assert.equal(run.prompts.length, MAX_PROMPTS);
+  const draft = await api.interpret(run.timeline_id, { text: "crash in 2010", mode: "add", expected_revision: run.revision });
+  const refused = await api.commit(run.timeline_id, { draft_id: draft.draft_id, expected_revision: run.revision, request_id: "over" });
+  assert.equal(refused.code, "prompt_limit");
+  assert.equal((await api.restore(run.timeline_id)).revision, run.revision);
 });
 
 const fixture = name => JSON.parse(readFileSync(new URL(`../shared/fixtures/${name}.json`, import.meta.url), "utf8"));

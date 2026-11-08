@@ -1,9 +1,12 @@
 import { useEffect, useRef, type KeyboardEvent } from "react";
 import type { Notice } from "./useWorkspace.ts";
+import { MAX_PROMPTS } from "../../config.ts";
 
 export interface ComposerProps {
   text: string;
   replacing: number | null;
+  /** Active prompts, or null before the workspace opens. */
+  count: number | null;
   pending: string | null;
   notice: Notice | null;
   reducedMotion: boolean;
@@ -13,7 +16,7 @@ export interface ComposerProps {
 }
 
 /** Enter submits, Shift+Enter adds a line, Escape cancels a replacement. */
-export function Composer({ text, replacing, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
+export function Composer({ text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
   const ref = useRef<HTMLTextAreaElement>(null);
 
   // Selecting a marker brings the composer into view with the old text ready to edit.
@@ -34,13 +37,13 @@ export function Composer({ text, replacing, pending, notice, reducedMotion, onCh
     }
   };
 
-  const action = replacing === null ? "Add prompt" : `Replace prompt [${replacing}]`;
+  const action = replacing === null ? "Add prompt" : `Replace prompt ${replacing}`;
 
   return (
     <form className="composer" data-replacing={replacing !== null || undefined}
       onSubmit={event => { event.preventDefault(); onSubmit(); }}>
       <label htmlFor="composer-input" className="composer-label">
-        {replacing === null ? "Describe a market what-if" : action}
+        {replacing === null ? `Describe a market what-if${count === null ? "" : ` · ${count} of ${MAX_PROMPTS} prompts`}` : action}
       </label>
       <div className="composer-box">
         <textarea id="composer-input" ref={ref} className="composer-input" rows={1} autoFocus

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { applyRun } from "../../api/applyRun.ts";
-import { ApiError, createApi } from "../../api/client.ts";
+import { ApiError, createApi, type DeletePromptRequest } from "../../api/client.ts";
+import { MAX_PROMPTS } from "../../config.ts";
 import { createMockApi } from "../../api/mockApi.ts";
 import type { Capabilities, CommitRequest, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
 import type { ChartProps } from "../chart/Chart.tsx";
@@ -34,7 +35,7 @@ export function useWorkspace() {
   const [text, setText] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
-  const [pending, setPending] = useState<"Interpreting" | "Simulating" | null>(null);
+  const [pending, setPending] = useState<"Interpreting" | "Simulating" | "Deleting" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [reveal, setReveal] = useState<RevealResponse | null>(null);
   const [playhead, setPlayhead] = useState<string | null>(null);
@@ -128,8 +129,12 @@ export function useWorkspace() {
   const submit = async () => {
     const prompt = text.trim();
     if (!prompt) return;
-    const { mine, signal } = start();
     const replacing = selectedId;
+    if (!replacing && (runRef.current?.prompts.length ?? 0) >= MAX_PROMPTS) {
+      setNotice({ tone: "error", reason: `A timeline holds up to ${MAX_PROMPTS} prompts. Delete one (hover its label and press ×) or select one to replace. Your text is kept.` });
+      return;
+    }
+    const { mine, signal } = start();
     setStarted(true);
     setPending("Interpreting");
     let body: CommitRequest | null = null;
@@ -175,7 +180,35 @@ export function useWorkspace() {
     setText(stash.current);
   };
 
-  const requestReveal = () => {
+  /** Removes one prompt; only a successful response changes the graph, redrawn from the deleted prompt's start. */
+  const deletePrompt = (id: string) => {
+    const current = runRef.current;
+    if (!current) return;
+    const wasSelected = selectedId === id;
+    const body: DeletePromptRequest = { prompt_id: id, expected_revision: current.revision, request_id: crypto.randomUUID() };
+    const send = async () => {
+      const { mine, signal } = start();
+      setPending("Deleting");
+      try {
+        const result = await api.deletePrompt(current.timeline_id, body, signal);
+        if (mine !== seq.current) return;
+        if (!("revision" in result)) { setNotice({ tone: "error", reason: result.reason, choices: result.choices }); return; }
+        install(applyRun(runRef.current, result, body.request_id), true, result.changed_from);
+        setFocusId(f => (f === id ? result.prompts.at(-1)?.id ?? null : f));
+        if (wasSelected) { setSelectedId(null); setText(stash.current); }
+      } catch (e) {
+        if (mine !== seq.current || (e instanceof DOMException && e.name === "AbortError")) return;
+        await fail(e, send); // a retry resends the identical body, request ID included
+      } finally {
+        finish(mine);
+      }
+    };
+    void send();
+  };
+
+  /** Toggles the actual-history overlay; hiding only drops the local copy, it never touches the run. */
+  const toggleReveal = () => {
+    if (reveal) { setReveal(null); return; }
     const current = runRef.current;
     if (!current) return;
     api.reveal(current.timeline_id, current.revision).then(
@@ -185,6 +218,6 @@ export function useWorkspace() {
 
   return {
     caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
-    pending, notice, reveal, playhead, setPlayhead, started, submit, selectPrompt, cancelSelection, requestReveal,
+    pending, notice, reveal, playhead, setPlayhead, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
   };
 }

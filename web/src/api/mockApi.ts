@@ -1,6 +1,7 @@
 import type { Capabilities, CommitRequest, CreateTimelineRequest, Instruction, InterpretRequest, Panel, Point,
   Problem, Prompt, ReadyDraft, RevealResponse, RunResponse } from "../generated/contracts.ts";
-import { ApiError, createApi } from "./client.ts";
+import { ApiError, createApi, type DeletePromptRequest } from "./client.ts";
+import { MAX_PROMPTS } from "../config.ts";
 
 // shortcut: temporary in-browser stand-in for the backend so any free-text prompt redraws a fake
 // 1980–2026 graph. Delete once the OpenAI parser (free text → Instruction) and replay API are live.
@@ -85,6 +86,8 @@ interface Draft { timelineId: string; revision: number; selected: string | null;
 const problem = (status: Problem["status"], code: string, reason: string, current_revision: number | null = null): Problem =>
   ({ status, code, reason, choices: [], current_revision, retryable: false });
 const sleep = () => new Promise(resolve => setTimeout(resolve, 250)); // visible pending state, like a real round trip
+const suffix = (run: RunResponse): RunResponse => ({ ...structuredClone(run), series_mode: "suffix",
+  series: { ...run.series, points: run.series.points.filter(p => p.date >= run.changed_from!) } });
 
 export function createMockApi(): ReturnType<typeof createApi> {
   const timelines = new Map<string, Timeline>();
@@ -120,7 +123,7 @@ export function createMockApi(): ReturnType<typeof createApi> {
       return {
         contract_version: "1", mode: "fixture", data_label: LABEL, targets: ["SPY"], unit: "index", frequency: "trading_session",
         default_viewport: { start_year: 1980, end_year: 2026 }, coverage: { first_session: SESSIONS[0], last_session: LAST, gaps: [] },
-        supported_event_families: ["free_text_mock"], default_horizon_sessions: 5, max_horizon_sessions: 65, max_prompts: 20,
+        supported_event_families: ["free_text_mock"], default_horizon_sessions: 5, max_horizon_sessions: 65, max_prompts: MAX_PROMPTS,
         evidence_available: false, display_rights: "Synthetic mock only", fixture_presets: [],
       };
     },
@@ -186,6 +189,9 @@ export function createMockApi(): ReturnType<typeof createApi> {
         throw new ApiError(409, problem("conflict", "stale_revision", "The timeline changed", run.revision));
       }
       const old = run.prompts.find(p => p.id === draft.selected);
+      if (!old && run.prompts.length >= MAX_PROMPTS) {
+        return problem("unsupported", "prompt_limit", `A timeline holds up to ${MAX_PROMPTS} prompts. Delete or replace one.`, run.revision);
+      }
       const prompt: Prompt = {
         ...draft.instruction, id: old?.id ?? `p${tl.next}`, display_number: old?.display_number ?? tl.next,
         creation_order: old?.creation_order ?? tl.next, text: draft.text, evidence_ids: [], resolved_value: null, status: "supported",
@@ -198,8 +204,19 @@ export function createMockApi(): ReturnType<typeof createApi> {
       tl.revisions.push(next);
       drafts.delete(body.draft_id);
       if (run.revision === 0) return structuredClone(next); // contract: first commit is a full snapshot
-      return { ...structuredClone(next), series_mode: "suffix",
-        series: { ...next.series, points: next.series.points.filter(p => p.date >= changedFrom) } };
+      return suffix(next);
+    },
+
+    async deletePrompt(id: string, body: DeletePromptRequest): Promise<RunResponse | Problem> {
+      await sleep();
+      const tl = timeline(id), run = latest(tl);
+      if (body.expected_revision !== run.revision) throw new ApiError(409, problem("conflict", "stale_revision", "The timeline changed", run.revision));
+      const gone = run.prompts.find(p => p.id === body.prompt_id);
+      if (!gone) throw new ApiError(422, problem("invalid", "unknown_prompt", "Unknown prompt", run.revision));
+      // Other prompts keep their IDs and permanent numbers; history repaints from the deleted prompt's start.
+      const next = snapshot(tl, run.prompts.filter(p => p !== gone), body.request_id, gone.effective_start);
+      tl.revisions.push(next);
+      return suffix(next);
     },
 
     async reveal(id: string, revision: number): Promise<RevealResponse> {

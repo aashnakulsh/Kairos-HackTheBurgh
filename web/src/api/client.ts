@@ -11,6 +11,13 @@ export class ApiError extends Error {
   }
 }
 
+/** Delete one active prompt (architecture §5). shortcut: hand-written until api/contracts.py defines it. */
+export interface DeletePromptRequest {
+  prompt_id: string;
+  expected_revision: number;
+  request_id: string;
+}
+
 /** Same-origin /api in production; http://127.0.0.1:8000 for local fixture mode.
  * No provider keys, OpenAI calls or automatic write retries belong in the browser.
  * Types are compile-time only; HTTP response conformance is checked by the server.
@@ -34,6 +41,7 @@ export function createApi(baseUrl = "", fetcher: typeof fetch = fetch) {
     revision: (id: string, revision: number) => call<RunResponse>(`${timeline(id)}/revisions/${revision}`),
     interpret: (id: string, body: InterpretRequest, signal?: AbortSignal) => call<ReadyDraft | Problem>(`${timeline(id)}/interpret`, body, signal),
     commit: (id: string, body: CommitRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/commit`, body, signal),
+    deletePrompt: (id: string, body: DeletePromptRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/delete`, body, signal),
     reveal: (id: string, revision: number, signal?: AbortSignal) => call<RevealResponse>(`${timeline(id)}/revisions/${revision}/reveal`, undefined, signal),
   };
 }

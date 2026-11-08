@@ -8,6 +8,7 @@ import "./chart.css";
 export const MARGIN = { l: 56, r: 24, b: 28 };
 const LABEL_ROW = 24;
 const LABEL_GAP = 84;
+const TOOLTIP_HALF = 130; // half of .chart-tooltip's 240px max-width, plus a little air
 const FULL_DRAW_MS = 1200;
 const EDIT_DRAW_MS = 700;
 
@@ -21,6 +22,7 @@ export interface ChartProps {
   reveal: RevealResponse | null;
   reducedMotion: boolean;
   onSelectPrompt: (id: string) => void;
+  onDeletePrompt: (id: string) => void;
 }
 
 const only = (points: Point[], keep: (p: Point, next: Point | undefined) => boolean, field: "value" | "q10" | "q90" = "value") =>
@@ -29,7 +31,7 @@ const only = (points: Point[], keep: (p: Point, next: Point | undefined) => bool
 const simulatedish = (p: Point, next: Point | undefined) =>
   p.kind === "simulated" || (p.kind === "observed" && next?.kind === "simulated");
 
-export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reducedMotion, onSelectPrompt }: ChartProps) {
+export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reducedMotion, onSelectPrompt, onDeletePrompt }: ChartProps) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
   const [head, setHead] = useState(Infinity);
@@ -138,13 +140,19 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
       <div className="chart-plot">
         <div ref={plotRef} className="chart-canvas" />
         {visibleMarks.map((m, i) => (
-          <button key={m.id} type="button" className="chart-marker" aria-pressed={m.id === selectedId}
-            aria-label={`${m.title}. Select to replace.`}
-            style={{ left: xOf(m.start), top: rows[i] * LABEL_ROW + 4 }}
-            onClick={() => onSelectPrompt(m.id)}>
-            {m.label}
-            <span className="chart-tooltip" aria-hidden="true">{m.title}</span>
-          </button>
+          // Wrapper, not a button: the delete × is a sibling button (buttons cannot nest).
+          <div key={m.id} className="chart-marker" data-selected={m.id === selectedId || undefined}
+            // Tooltips near an edge open inward so they never widen the page.
+            data-align={xOf(m.start) > width - TOOLTIP_HALF ? "end" : xOf(m.start) < TOOLTIP_HALF ? "start" : undefined}
+            style={{ left: xOf(m.start), top: rows[i] * LABEL_ROW + 4 }}>
+            <button type="button" className="chart-marker-select" aria-pressed={m.id === selectedId}
+              aria-label={`${m.title}. Select to replace.`} onClick={() => onSelectPrompt(m.id)}>
+              {m.label}
+              <span className="chart-tooltip" aria-hidden="true">{m.title}</span>
+            </button>
+            <button type="button" className="chart-marker-delete" aria-label={`Delete ${m.label}`}
+              onClick={() => onDeletePrompt(m.id)}>×</button>
+          </div>
         ))}
         {playhead && ms(playhead) >= range[0] && ms(playhead) < range[1] &&
           <div className="chart-playhead" style={{ left: xOf(playhead), top }} aria-hidden="true" />}

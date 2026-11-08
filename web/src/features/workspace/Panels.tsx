@@ -1,3 +1,4 @@
+import type { CSSProperties } from "react";
 import type { Panel, Prompt } from "../../generated/contracts.ts";
 import { formatImpact, rankImpacts, type Trend } from "./format.ts";
 
@@ -14,17 +15,43 @@ function scope(p: Prompt) {
 }
 
 const TREND = { gain: "▲ Gain", loss: "▼ Loss", flat: "■ Flat", unknown: "No simulated move" } as const;
+const trendText = (t: Trend) => `${TREND[t.direction]}${t.change === null ? "" : ` ${t.change > 0 ? "+" : ""}${t.change.toFixed(2)}%`}`;
 
-/** Translucent description for the selected (or last changed) prompt. */
+// Typed dividers and tilts for the paper notes, picked by the permanent prompt number so a note never changes look.
+const DIVIDERS = ["=-", "·x", "`·.·'·.", ".", "._.~", "-"];
+const TILTS = [-1.6, 1.2, -0.4, 0.8, -1.1];
+const divider = (n: number) => DIVIDERS[(n - 1) % DIVIDERS.length].repeat(40);
+
+/** All prompts deselected: one small paper note per prompt, in timeline order. Clicking a note selects it. */
+export function NoteRow({ prompts, trends, onSelect }: { prompts: Prompt[]; trends: Record<string, Trend>; onSelect: (id: string) => void }) {
+  const ordered = [...prompts].sort((a, b) => a.effective_start.localeCompare(b.effective_start) || a.creation_order - b.creation_order);
+  return (
+    <ul className="notes" aria-label="Prompts">
+      {ordered.map(p => (
+        <li key={p.id} style={{ "--tilt": `${TILTS[(p.display_number - 1) % TILTS.length]}deg` } as CSSProperties}>
+          <button type="button" className="note note-small" aria-label={`Prompt ${p.display_number}: ${p.text}. Select to replace.`}
+            onClick={() => onSelect(p.id)}>
+            <span className="note-title">prompt {p.display_number}</span>
+            <span className="note-divider" aria-hidden="true">{divider(p.display_number)}</span>
+            <span className="note-body">{p.text}</span>
+            <span className="note-trend" data-trend={trends[p.id]?.direction}>{p.effective_start} · {trendText(trends[p.id] ?? { direction: "unknown", change: null })}</span>
+          </button>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Selected prompt: one wide, centred paper note with the full description. */
 export function NarrativePanel({ prompt, panel, trend }: { prompt: Prompt; panel: Panel | undefined; trend: Trend }) {
   const evidence = new Map(panel?.evidence.map(e => [e.id, e]));
   const markets = (exposure: "direct" | "indirect") => panel?.impacts.filter(i => i.exposure === exposure).map(i => `${i.emoji} ${i.name}`) ?? [];
   const direct = markets("direct"), indirect = markets("indirect");
   return (
-    <section className="narrative" aria-label={`Prompt ${prompt.display_number} description`} key={prompt.id}>
-      <h2>Prompt {prompt.display_number} <span className="narrative-trend" data-trend={trend.direction}>
-        {TREND[trend.direction]}{trend.change !== null && ` ${trend.change > 0 ? "+" : ""}${trend.change.toFixed(2)}%`}
-      </span></h2>
+    <section className="note narrative" aria-label={`Prompt ${prompt.display_number} description`} key={prompt.id}>
+      <h2 className="note-title">prompt {prompt.display_number}</h2>
+      <div className="note-divider" aria-hidden="true">{divider(prompt.display_number)}</div>
+      <p className="note-trend" data-trend={trend.direction}>{trendText(trend)}</p>
       <p className="narrative-scope">{scope(prompt)}</p>
       {prompt.status === "unsupported" && <p className="narrative-warning">Unsupported: no numeric forecast for this prompt.</p>}
       {!panel ? <p>No description returned; showing the resolved instruction only.</p> : <>

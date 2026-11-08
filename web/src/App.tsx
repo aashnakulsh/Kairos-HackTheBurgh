@@ -1,10 +1,10 @@
-import { useSyncExternalStore } from "react";
+import { useSyncExternalStore, type MouseEvent } from "react";
 import { flushSync } from "react-dom";
 import { Chart } from "./features/chart/Chart.tsx";
 import { Timeline } from "./features/chart/Timeline.tsx";
 import { markers } from "./features/chart/geometry.ts";
 import { Composer } from "./features/workspace/Composer.tsx";
-import { ImpactList, NarrativePanel } from "./features/workspace/Panels.tsx";
+import { ImpactList, NarrativePanel, NoteRow } from "./features/workspace/Panels.tsx";
 import { segmentTrend } from "./features/workspace/format.ts";
 import { useWorkspace } from "./features/workspace/useWorkspace.ts";
 
@@ -33,8 +33,16 @@ export function App() {
     document.startViewTransition(() => flushSync(() => void ws.submit()));
   };
 
+  const selected = prompts.find(p => p.id === ws.selectedId);
+  const trends = Object.fromEntries(prompts.map(p => [p.id, segmentTrend(points, p.id)]));
+
+  // Clicking empty space (not a control, link, input or the composer) clears the selection.
+  const deselectOnBackground = (event: MouseEvent<HTMLElement>) => {
+    if (!(event.target as Element).closest("button, a, input, textarea, select, summary, label, form")) ws.cancelSelection();
+  };
+
   const composer = (
-    <Composer text={ws.text} replacing={replacing} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
+    <Composer text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
       onChange={ws.setText} onSubmit={submit} onCancel={ws.cancelSelection} />
   );
 
@@ -49,7 +57,7 @@ export function App() {
   }
 
   return (
-    <main className="workspace" data-trend={trend.direction}>
+    <main className="workspace" data-trend={trend.direction} onClick={deselectOnBackground}>
       <div className="backdrop" aria-hidden="true">
         {(["gain", "loss", "flat"] as const).map(tone => <div key={tone} className={`backdrop-${tone}`} />)}
         {BACKGROUND_ASSET && !reducedMotion && <img className="backdrop-asset" src={BACKGROUND_ASSET} alt="" />}
@@ -58,13 +66,17 @@ export function App() {
         <h1>US Market What If?</h1>
         <span className="data-label">{ws.run?.data_label ?? ws.caps?.data_label}</span>
         {ws.caps && <span>Data {ws.caps.coverage.first_session} to {ws.caps.coverage.last_session}</span>}
-        <button type="button" className="button button-quiet" onClick={ws.requestReveal}
-          disabled={!points.some(p => p.kind === "simulated") || ws.reveal !== null}>Reveal actual history</button>
+        <button type="button" className="button button-quiet" onClick={ws.toggleReveal} aria-pressed={ws.reveal !== null}
+          disabled={!ws.reveal && !points.some(p => p.kind === "simulated")}>
+          {ws.reveal ? "Hide actual history" : "Reveal actual history"}
+        </button>
       </header>
       <section className="stage">
-        {shown && <NarrativePanel prompt={shown} panel={ws.run?.panels[shown.id]} trend={trend} />}
+        {selected
+          ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} />
+          : !!prompts.length && <NoteRow prompts={prompts} trends={trends} onSelect={ws.selectPrompt} />}
         <Chart run={ws.run} draw={ws.draw} viewport={ws.viewport} selectedId={ws.selectedId} playhead={ws.playhead}
-          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} />
+          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.deletePrompt} />
         <Timeline viewport={ws.viewport} greyYears={greyYears} points={points} playhead={ws.playhead}
           onViewportChange={ws.setViewport} onPlayheadChange={ws.setPlayhead} />
       </section>
