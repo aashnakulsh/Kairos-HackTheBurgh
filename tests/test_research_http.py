@@ -87,6 +87,13 @@ class ResearchHTTPTests(unittest.TestCase):
         for name, frame in frames.items():
             frame.to_parquet(directory / name, index=False)
         manifest = dict(inputs.manifest, files={name: digest(directory / name) for name in frames})
+        import pandas as pd
+        reveal = self.root / "reveal" / inputs.manifest["dataset_version"]
+        reveal.mkdir(parents=True)
+        actuals = pd.DataFrame(dict(date=inputs.schedule.date, level=[120.0 + i for i in range(len(inputs.schedule))],
+            available_at=inputs.schedule.close.map(lambda d: d.isoformat())))
+        actuals.to_parquet(reveal / "spy_actuals.parquet", index=False)
+        manifest["reveal_sha256"] = digest(reveal / "spy_actuals.parquet")
         (directory / "manifest.json").write_text(json.dumps(manifest))
         return directory
 
@@ -124,9 +131,9 @@ class ResearchHTTPTests(unittest.TestCase):
 
     def test_capabilities_and_creation_are_frozen_real_inputs_without_inference(self):
         caps = Capabilities.model_validate(self.client.get("/api/capabilities").json())
-        self.assertEqual((caps.mode, caps.max_prompts, caps.max_horizon_sessions), ("live", 1, 5))
-        self.assertEqual(caps.coverage.last_session, DATES[-1])
-        self.assertEqual(len(caps.fixture_presets), 2)
+        self.assertEqual((caps.mode, caps.max_prompts, caps.max_horizon_sessions), ("live", 3, 65))
+        self.assertEqual(caps.coverage.last_session, "2025-08-18")
+        self.assertEqual(len(caps.fixture_presets), 5)
         self.assertIn("unreviewed", caps.display_rights)
         run = RunResponse.model_validate(self.initial)
         expected = self.adapter.inputs.request(.2, MODEL_VERSION)
@@ -185,17 +192,89 @@ class ResearchHTTPTests(unittest.TestCase):
 
     def test_july_relative_extra_prompts_and_unknown_input_preserve_state(self):
         before, _ = self.run_one()
-        for text in ["Set July 15 CPI to 0.2%", "July 15: add 0.1 percentage points to preceding reading",
-                     "August 12: keep July simulated reading", "2008", "Change CPI"]:
+        for text in ["Set September CPI to 0.2%", "2008", "Change CPI"]:
             response = self.client.post(self.url + "/interpret", json=dict(text=text, mode="replace", selected_prompt_id="p1", expected_revision=1))
             self.assertIn(response.json()["status"], {"unsupported", "needs_clarification"})
-            self.assertEqual(len(response.json()["choices"]), 2)
-        extra = self.client.post(self.url + "/interpret", json=dict(text="Set June 11 CPI to 0.2%", mode="add", expected_revision=1))
-        self.assertEqual(extra.json()["code"], "research_prompt_limit")
+            self.assertEqual(len(response.json()["choices"]), 5)
         reveal = self.client.get(self.url + "/revisions/1/reveal").json()
-        self.assertEqual(reveal["status"], "unsupported")
+        self.assertEqual([p["date"] for p in reveal["series"]["points"]], DATES)
         self.assertEqual(self.client.get(self.url).json(), before)
         self.assertEqual(len(self.adapter._pipeline.calls), 1)
+
+    def submit_text(self, text, revision, selected=None):
+        draft = self.client.post(self.url + "/interpret", json=dict(text=text,
+            mode="replace" if selected else "add", selected_prompt_id=selected, expected_revision=revision))
+        self.assertEqual(draft.json()["status"], "ready", draft.text)
+        response, _ = self.commit(draft.json()["draft_id"], revision, f"step-{revision}")
+        self.assertEqual(response.status_code, 200, response.text)
+        RunResponse.model_validate(response.json())
+        return response.json()
+
+    def test_three_real_prompts_inherit_medians_and_edit_preserves_ids_and_history(self):
+        texts = ["Set June 11 CPI to 0.4%", "July 15: add 0.1 percentage points to preceding reading",
+                 "August 12: keep July simulated reading"]
+        for rev, text in enumerate(texts):
+            self.submit_text(text, rev)
+        original = self.client.get(self.url).json()
+        self.assertEqual([p["resolved_value"] for p in original["prompts"]], [.4, .5, .5])
+        self.assertEqual(original["series"]["points"][-1]["date"], "2025-08-18")
+        edited = self.submit_text("Set June 11 CPI to 0.2%", 3, "p1")
+        self.assertEqual([p["id"] for p in edited["prompts"]], ["p1", "p2", "p3"])
+        self.assertEqual([p["resolved_value"] for p in edited["prompts"]], [.2, .3, .3])
+        self.assertEqual(edited["series_mode"], "suffix")
+        self.assertEqual(edited["changed_from"], "2025-06-11")
+        self.assertEqual(self.client.get(self.url).json()["series"]["points"][:20], self.initial["series"]["points"])
+        self.assertEqual(self.client.get(self.url + "/revisions/3").json(), original)
+        last_past, last_future, _ = self.adapter._pipeline.calls[-1]
+        self.assertEqual(last_past.target.iloc[-1], 100.3)
+        self.assertEqual(last_future.cpi_percent.tolist(), [.3] * 5)
+        self.assertNotIn("target", last_future)
+        before = self.client.get(self.url).json()
+        self.submit_text("Set July 15 CPI to 0.2%", 4, "p2")
+        prefix = lambda run: [p for p in run["series"]["points"] if p["date"] < "2025-07-15"]
+        self.assertEqual(prefix(before), prefix(self.client.get(self.url).json()))
+        limit = self.client.post(self.url + "/interpret", json=dict(text=texts[0], mode="add", expected_revision=5))
+        self.assertEqual(limit.json()["code"], "research_prompt_limit")
+
+    def test_reveal_is_revision_scoped_and_does_not_change_inference(self):
+        before, _ = self.run_one()
+        count = len(self.adapter._pipeline.calls)
+        actual = self.client.get(self.url + "/revisions/1/reveal").json()
+        from api.contracts import RevealResponse
+        RevealResponse.model_validate(actual)
+        self.assertEqual(len(self.adapter._pipeline.calls), count)
+        self.assertEqual(actual["series"]["base_date"], before["series"]["base_date"])
+        self.assertIn("IEX", actual["attribution"])
+        self.assertEqual(actual["revision"], 1)
+        self.assertEqual(self.client.get(self.url).json(), before)
+        self.submit_text("Set June 11 CPI to 0.2%", 1, "p1")
+        past, _, _ = self.adapter._pipeline.calls[-1]
+        self.assertEqual(past.target.tolist(), [p["value"] for p in self.initial["series"]["points"]])
+        self.assertEqual(self.client.get(self.url + "/revisions/1/reveal").json(), actual)
+        self.assertEqual(self.client.get(self.url + "/revisions/999/reveal").status_code, 404)
+
+    def test_moving_last_prompt_earlier_replaces_from_earlier_date_and_removes_tail(self):
+        for rev, text in enumerate(["Set June 11 CPI to 0.4%",
+                "July 15: add 0.1 percentage points to preceding reading",
+                "August 12: keep July simulated reading"]):
+            self.submit_text(text, rev)
+        before = self.client.get(self.url).json()
+        moved = self.submit_text("Set July 15 CPI to 0.2%", 3, "p3")
+        self.assertEqual(moved["changed_from"], "2025-07-15")
+        self.assertEqual(moved["replace_through"], "2025-08-18")
+        self.assertEqual(moved["series"]["points"][-1]["date"], "2025-07-21")
+        self.assertEqual([p["id"] for p in moved["prompts"]], ["p1", "p2", "p3"])
+        after = self.client.get(self.url).json()
+        prefix = lambda r: [p for p in r["series"]["points"] if p["date"] < "2025-07-15"]
+        self.assertEqual(prefix(before), prefix(after))
+        self.assertEqual(self.client.get(self.url + "/revisions/3").json(), before)
+
+    def test_missing_and_corrupt_reveal_preserve_forecast(self):
+        before, _ = self.run_one()
+        (self.root / "reveal/test-only/spy_actuals.parquet").write_bytes(b"corrupt")
+        response = self.client.get(self.url + "/revisions/1/reveal")
+        self.assertEqual(response.json()["status"], "unsupported")
+        self.assertEqual(self.client.get(self.url).json(), before)
 
     def test_server_rejects_out_of_scope_provider_output(self):
         from api.preset_parser import PresetParser

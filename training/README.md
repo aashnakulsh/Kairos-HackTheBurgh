@@ -14,5 +14,8 @@ baseline comparison and cold/warm latency alongside timeline replay and storage 
 for the bounded June 11 example. Run `python tools/real_forecast.py` after preparing
 the local inputs. See [the real-data and API guide](../docs/real-data-adapter.md) for CPU
 setup, tests and limitations. `APP_MODE=research` connects this boundary to the durable
-HTTP API for one June prompt and replacement. The current real dataset cannot support
-the empirical floor. Aashna and Aditya continue the remaining work together here.
+HTTP API for three June/July/August prompts, replacement and separate actual-history
+reveal. The original four-release snapshot cannot support the empirical floor;
+the expanded original-release snapshot supports both June baseline scenarios.
+`tools/evaluate_market.py` runs chronological diagnostics with separately loaded
+outcomes. These are not leakage-free held-out results; see the guide's disclosures.

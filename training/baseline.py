@@ -49,6 +49,9 @@ class EmpiricalBaseline:
             f"Fixed pre-evaluation floor: {FLOOR} distinct releases; analogue tolerance +/-{TOLERANCE_PP} percentage points.",
             "Reference ignores hypothetical CPI; analogue matches change from previously published reading."]
         try:
+            if len(request.future) != 5 or any(r.kind != "observed" for r in request.history):
+                return unsupported(self.engine, self.model_version,
+                    "Baseline supports five sessions from observed history only", assumptions=assumptions)
             request = validate_request(request, self.inputs, self.model_version)
             windows = completed_windows(self.inputs.prices, self.inputs.releases,
                 self.inputs.schedule, request.evidence_cutoff)

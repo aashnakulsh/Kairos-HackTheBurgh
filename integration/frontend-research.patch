@@ -1,0 +1,208 @@
+diff --git a/web/src/App.tsx b/web/src/App.tsx
+index aed6898..671debb 100644
+--- a/web/src/App.tsx
++++ b/web/src/App.tsx
+@@ -42,7 +42,7 @@ export function App() {
+   };
+ 
+   const composer = (
+-    <Composer text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
++    <Composer maxPrompts={ws.caps?.max_prompts} presets={ws.caps?.fixture_presets} text={ws.text} replacing={replacing} count={ws.started ? prompts.length : null} pending={ws.pending} notice={ws.notice} reducedMotion={reducedMotion}
+       onChange={ws.setText} onSubmit={submit} onCancel={ws.cancelSelection} />
+   );
+ 
+@@ -51,6 +51,7 @@ export function App() {
+       <main className="intro">
+         <h1 className="visually-hidden">US Market What If?</h1>
+         {composer}
++        <p className="data-label">{ws.caps?.data_label}</p>
+         {ws.capsFailed && <p className="intro-error">Couldn't reach the server. <button type="button" className="button button-quiet" onClick={ws.loadCaps}>Retry</button></p>}
+       </main>
+     );
+@@ -67,7 +68,7 @@ export function App() {
+         <span className="data-label">{ws.run?.data_label ?? ws.caps?.data_label}</span>
+         {ws.caps && <span>Data {ws.caps.coverage.first_session} to {ws.caps.coverage.last_session}</span>}
+         <button type="button" className="button button-quiet" onClick={ws.toggleReveal} aria-pressed={ws.reveal !== null}
+-          disabled={!ws.reveal && !points.some(p => p.kind === "simulated")}>
++          disabled={!!ws.pending || (!ws.reveal && !points.some(p => p.kind === "simulated"))}>
+           {ws.reveal ? "Hide actual history" : "Reveal actual history"}
+         </button>
+       </header>
+@@ -76,7 +77,7 @@ export function App() {
+           ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} />
+           : !!prompts.length && <NoteRow prompts={prompts} trends={trends} onSelect={ws.selectPrompt} />}
+         <Chart run={ws.run} draw={ws.draw} viewport={ws.viewport} selectedId={ws.selectedId} playhead={ws.playhead}
+-          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.deletePrompt} />
++          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.canDelete ? ws.deletePrompt : undefined} />
+         <Timeline viewport={ws.viewport} greyYears={greyYears} points={points} playhead={ws.playhead}
+           onViewportChange={ws.setViewport} onPlayheadChange={ws.setPlayhead} />
+       </section>
+diff --git a/web/src/api/client.ts b/web/src/api/client.ts
+index d47e7ee..912d091 100644
+--- a/web/src/api/client.ts
++++ b/web/src/api/client.ts
+@@ -42,6 +42,6 @@ export function createApi(baseUrl = "", fetcher: typeof fetch = fetch) {
+     interpret: (id: string, body: InterpretRequest, signal?: AbortSignal) => call<ReadyDraft | Problem>(`${timeline(id)}/interpret`, body, signal),
+     commit: (id: string, body: CommitRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/commit`, body, signal),
+     deletePrompt: (id: string, body: DeletePromptRequest, signal?: AbortSignal) => call<RunResponse | Problem>(`${timeline(id)}/delete`, body, signal),
+-    reveal: (id: string, revision: number, signal?: AbortSignal) => call<RevealResponse>(`${timeline(id)}/revisions/${revision}/reveal`, undefined, signal),
++    reveal: (id: string, revision: number, signal?: AbortSignal) => call<RevealResponse | Problem>(`${timeline(id)}/revisions/${revision}/reveal`, undefined, signal),
+   };
+ }
+diff --git a/web/src/features/chart/Chart.tsx b/web/src/features/chart/Chart.tsx
+index d84dde5..1c707e3 100644
+--- a/web/src/features/chart/Chart.tsx
++++ b/web/src/features/chart/Chart.tsx
+@@ -22,7 +22,7 @@ export interface ChartProps {
+   reveal: RevealResponse | null;
+   reducedMotion: boolean;
+   onSelectPrompt: (id: string) => void;
+-  onDeletePrompt: (id: string) => void;
++  onDeletePrompt?: (id: string) => void;
+ }
+ 
+ const only = (points: Point[], keep: (p: Point, next: Point | undefined) => boolean, field: "value" | "q10" | "q90" = "value") =>
+@@ -150,8 +150,8 @@ export function Chart({ run, draw, viewport, selectedId, playhead, reveal, reduc
+               {m.label}
+               <span className="chart-tooltip" aria-hidden="true">{m.title}</span>
+             </button>
+-            <button type="button" className="chart-marker-delete" aria-label={`Delete ${m.label}`}
+-              onClick={() => onDeletePrompt(m.id)}>×</button>
++            {onDeletePrompt && <button type="button" className="chart-marker-delete" aria-label={`Delete ${m.label}`}
++              onClick={() => onDeletePrompt(m.id)}>×</button>}
+           </div>
+         ))}
+         {playhead && ms(playhead) >= range[0] && ms(playhead) < range[1] &&
+diff --git a/web/src/features/workspace/Composer.tsx b/web/src/features/workspace/Composer.tsx
+index cc174e7..0e5238b 100644
+--- a/web/src/features/workspace/Composer.tsx
++++ b/web/src/features/workspace/Composer.tsx
+@@ -3,6 +3,8 @@ import type { Notice } from "./useWorkspace.ts";
+ import { MAX_PROMPTS } from "../../config.ts";
+ 
+ export interface ComposerProps {
++  maxPrompts?: number;
++  presets?: string[];
+   text: string;
+   replacing: number | null;
+   /** Active prompts, or null before the workspace opens. */
+@@ -16,7 +18,7 @@ export interface ComposerProps {
+ }
+ 
+ /** Enter submits, Shift+Enter adds a line, Escape cancels a replacement. */
+-export function Composer({ text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
++export function Composer({ maxPrompts = MAX_PROMPTS, presets = [], text, replacing, count, pending, notice, reducedMotion, onChange, onSubmit, onCancel }: ComposerProps) {
+   const ref = useRef<HTMLTextAreaElement>(null);
+ 
+   // Selecting a marker brings the composer into view with the old text ready to edit.
+@@ -43,15 +45,16 @@ export function Composer({ text, replacing, count, pending, notice, reducedMotio
+     <form className="composer" data-replacing={replacing !== null || undefined}
+       onSubmit={event => { event.preventDefault(); onSubmit(); }}>
+       <label htmlFor="composer-input" className="composer-label">
+-        {replacing === null ? `Describe a market what-if${count === null ? "" : ` · ${count} of ${MAX_PROMPTS} prompts`}` : action}
++        {replacing === null ? `Describe a market what-if${count === null ? "" : ` · ${count} of ${maxPrompts} prompts`}` : action}
+       </label>
+       <div className="composer-box">
+         <textarea id="composer-input" ref={ref} className="composer-input" rows={1} autoFocus
+-          value={text} placeholder="e.g. What if inflation spiked to 6% in 2008?"
++          value={text} placeholder={presets[0] ?? "Describe a market what-if"}
+           onChange={event => onChange(event.target.value)} onKeyDown={onKeyDown} />
+         {replacing !== null && <button type="button" className="button button-quiet" onClick={onCancel}>Cancel</button>}
+-        <button type="submit" className="button" disabled={!text.trim()}>{action}</button>
++        <button type="submit" className="button" disabled={!text.trim() || !!pending}>{action}</button>
+       </div>
++      {!!presets.length && <div className="notice-choices">{presets.map(preset => <button key={preset} type="button" className="button button-quiet" disabled={!!pending} onClick={() => onChange(preset)}>{preset}</button>)}</div>}
+       <div className="composer-status" aria-live="polite">
+         {pending && <span className="composer-pending">{pending}…</span>}
+         {notice && (
+diff --git a/web/src/features/workspace/useWorkspace.ts b/web/src/features/workspace/useWorkspace.ts
+index 63f1567..8223d45 100644
+--- a/web/src/features/workspace/useWorkspace.ts
++++ b/web/src/features/workspace/useWorkspace.ts
+@@ -8,7 +8,8 @@ import type { ChartProps } from "../chart/Chart.tsx";
+ 
+ // shortcut: the in-browser mock is the default until the OpenAI parser lands; VITE_API=server uses the HTTP API.
+ const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
+-const STORAGE_KEY = "teamrelay.timeline_id";
++const serverMode = import.meta.env.VITE_API === "server";
++const STORAGE_KEY = `teamrelay.${serverMode ? "server" : "mock"}.timeline_id`;
+ 
+ export interface Notice {
+   tone: "error" | "info";
+@@ -43,11 +44,13 @@ export function useWorkspace() {
+ 
+   const runRef = useRef(run);
+   const seq = useRef(0);
++  const revealSeq = useRef(0);
+   const abort = useRef<AbortController | null>(null);
+   const createId = useRef(crypto.randomUUID()); // reused until creation succeeds, so a blind retry is idempotent
+   const stash = useRef(""); // unsent "Add prompt" text, restored when a selection is cancelled
+ 
+   const install = (next: RunResponse, animate: boolean, from: string | null = null) => {
++    revealSeq.current++;
+     runRef.current = next;
+     setRun(next);
+     setReveal(null);
+@@ -130,8 +133,8 @@ export function useWorkspace() {
+     const prompt = text.trim();
+     if (!prompt) return;
+     const replacing = selectedId;
+-    if (!replacing && (runRef.current?.prompts.length ?? 0) >= MAX_PROMPTS) {
+-      setNotice({ tone: "error", reason: `A timeline holds up to ${MAX_PROMPTS} prompts. Delete one (hover its label and press ×) or select one to replace. Your text is kept.` });
++    if (!replacing && (runRef.current?.prompts.length ?? 0) >= (caps?.max_prompts ?? MAX_PROMPTS)) {
++      setNotice({ tone: "error", reason: `A timeline holds up to ${caps?.max_prompts ?? MAX_PROMPTS} prompts. Select one to replace. Your text is kept.` });
+       return;
+     }
+     const { mine, signal } = start();
+@@ -183,7 +186,7 @@ export function useWorkspace() {
+   /** Removes one prompt; only a successful response changes the graph, redrawn from the deleted prompt's start. */
+   const deletePrompt = (id: string) => {
+     const current = runRef.current;
+-    if (!current) return;
++    if (!current || serverMode) return;
+     const wasSelected = selectedId === id;
+     const body: DeletePromptRequest = { prompt_id: id, expected_revision: current.revision, request_id: crypto.randomUUID() };
+     const send = async () => {
+@@ -208,16 +211,20 @@ export function useWorkspace() {
+ 
+   /** Toggles the actual-history overlay; hiding only drops the local copy, it never touches the run. */
+   const toggleReveal = () => {
++    const mine = ++revealSeq.current;
+     if (reveal) { setReveal(null); return; }
+     const current = runRef.current;
+-    if (!current) return;
+-    api.reveal(current.timeline_id, current.revision).then(
+-      r => { if (runRef.current?.revision === r.revision) setReveal(r); },
+-      e => fail(e));
++    if (!current || pending) return;
++    api.reveal(current.timeline_id, current.revision).then(r => {
++      if (mine !== revealSeq.current || runRef.current?.timeline_id !== current.timeline_id ||
++          runRef.current?.revision !== current.revision) return;
++      if (!("series" in r)) { setNotice({ tone: "error", reason: r.reason }); return; }
++      if (r.timeline_id === current.timeline_id && r.revision === current.revision) setReveal(r);
++    }, e => { if (mine === revealSeq.current) void fail(e); });
+   };
+ 
+   return {
+-    caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
++    canDelete: !serverMode, caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
+     pending, notice, reveal, playhead, setPlayhead, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
+   };
+ }
+diff --git a/web/vite.config.ts b/web/vite.config.ts
+index 061eca8..f42a31f 100644
+--- a/web/vite.config.ts
++++ b/web/vite.config.ts
+@@ -1,8 +1,8 @@
+-import { defineConfig } from "vite";
++import { defineConfig, loadEnv } from "vite";
+ import react from "@vitejs/plugin-react";
+ 
+ // Same-origin /api in the browser; dev forwards it to the local fixture API (README).
+-export default defineConfig({
++export default defineConfig(({ mode }) => ({
+   plugins: [react()],
+-  server: { proxy: { "/api": "http://127.0.0.1:8000" } },
+-});
++  server: { proxy: { "/api": loadEnv(mode, ".", "").BACKEND_URL || "http://127.0.0.1:8000" } },
++}));

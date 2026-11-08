@@ -45,11 +45,12 @@ def main():
             return
 
         caps = get("/api/capabilities")
-        assert caps["mode"] == "live" and caps["max_prompts"] == 1, "Start the research-mode server first"
+        assert caps["mode"] == "live" and caps["max_prompts"] == 3, "Start the research-mode server first"
         initial = post("/api/timelines", dict(target_id="SPY", request_id=uuid4().hex))
         RunResponse.model_validate(initial)
         assert initial["evidence_cutoff"] == "2025-06-11T12:29:59Z"
-        assert len(initial["series"]["points"]) == 20
+        observed_count = len(initial["series"]["points"])
+        assert observed_count >= 20
         assert all(p["kind"] == "observed" and p["date"] < DATES[0] for p in initial["series"]["points"])
         url = f"/api/timelines/{initial['timeline_id']}"
         expected = json.loads(args.expected_forecast.read_text()) if args.expected_forecast else None
@@ -79,8 +80,8 @@ def main():
             print(f"PASS: CPI {value}%, revision {result['revision']}, {result['series_mode']}, five ordered forecast points")
         latest = get(url)
         RunResponse.model_validate(latest)
-        assert latest["series"]["points"][:20] == initial["series"]["points"]
-        assert latest["series"]["points"][20:] == result["series"]["points"]
+        assert latest["series"]["points"][:observed_count] == initial["series"]["points"]
+        assert latest["series"]["points"][observed_count:] == result["series"]["points"]
         assert latest["prompts"][0]["id"] == first["prompts"][0]["id"] == "p1"
         assert get(url + "/revisions/1") == first
         assert post(url + "/commit", first_commit) == first

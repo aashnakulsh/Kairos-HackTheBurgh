@@ -10,7 +10,7 @@ from data.real_market import UnsupportedInput
 
 MODEL = "amazon/chronos-2"
 REVISION = "29ec3766d36d6f73f0696f85560a422f50e8498c"
-MODEL_VERSION = f"chronos-2-2.3.2-{REVISION[:12]}-cpu-cpi-v1"
+MODEL_VERSION = f"chronos-2-2.3.2-{REVISION[:12]}-cpu-cpi-v2"
 
 
 def unsupported(engine, model_version, reason, count=0, assumptions=()):
@@ -21,6 +21,8 @@ def unsupported(engine, model_version, reason, count=0, assumptions=()):
 def validate_request(request, inputs, model_version):
     # Revalidate mutable model instances and bind all numerical inputs to our snapshot.
     request = ForecastRequest.model_validate(request.model_dump())
+    if hasattr(inputs, "validate_segment"):
+        return inputs.validate_segment(request, model_version)
     expected = inputs.request(request.future[0].cpi_percent, model_version)
     for key in ("target_id", "base_date", "base_value", "evidence_cutoff", "dataset_version",
                 "model_version", "history", "future"):
@@ -69,7 +71,8 @@ class ChronosAdapter:
         assumptions = list(request.assumptions) + [
             "Conditional statistical forecast, not a causal CPI effect or investment advice.",
             "Pretrained weights are not certified free of post-cutoff training data; not a leakage-free backtest.",
-            "Only 20 historical sessions; uncertainty is model-derived and uncalibrated on this market.",
+            "Short CPI context; uncertainty is model-derived and uncalibrated on this market.",
+            "Downstream bands are conditional on the preceding simulated median trajectory.",
             f"Weights {MODEL}@{REVISION}; chronos-forecasting 2.3.2; CPU; session-ordinal grid.",
             "support_count=0 means no empirical analogue support count is claimed for Chronos."]
         try:
@@ -84,7 +87,7 @@ class ChronosAdapter:
             result = result.sort_values("timestamp")
             if (result.timestamp.tolist() != future.timestamp.tolist()
                 or set(result.item_id) != {"SPY"}):
-                raise UnsupportedInput("Model output does not match the requested five steps")
+                raise UnsupportedInput("Model output does not match the requested sessions")
             values = result[["0.1", "0.5", "0.9"]].to_numpy(dtype=float)
             if (values.shape != (len(request.future), 3) or not np.isfinite(values).all()
                 or (np.diff(values, axis=1) < 0).any()):

@@ -155,7 +155,17 @@ class DurableService:
         return response
 
     def reveal(self, timeline_id, revision):
-        self.get(timeline_id, revision)
+        run = self.get(timeline_id, revision)
+        if self.research:
+            from data.reveal import reveal_run
+            from data.real_market import UnsupportedInput
+            try:
+                return reveal_run(self.settings.data_dir, run)
+            except UnsupportedInput as exc:
+                raise BackendError(200, "unsupported", "reveal_unavailable", str(exc), revision) from exc
+            except (OSError, ValueError, KeyError) as exc:
+                raise BackendError(503, "unavailable", "reveal_unavailable",
+                    "Pinned actual-history data is missing or invalid; the forecast is unchanged", revision) from exc
         raise BackendError(200, "unsupported", "reveal_unavailable",
             ("HTTP actual-history reveal is not enabled for this research milestone. Use the separate local reveal reader."
              if self.research else "The synthetic runtime has no real reveal. The separate fixture server provides synthetic examples."), revision)

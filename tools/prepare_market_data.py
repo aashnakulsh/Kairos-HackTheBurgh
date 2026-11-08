@@ -12,8 +12,9 @@ from data.real_market import build
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument("--data-dir", type=Path, default=Path(os.environ.get("DATA_DIR", "data/local")))
+    p.add_argument("--cpi-directory", type=Path, help="Optional additional original CPI archives")
     args = p.parse_args()
-    directory, manifest = build(args.data_dir)
+    directory, manifest = build(args.data_dir, args.cpi_directory)
     print(f"Snapshot: {directory}")
     print(json.dumps(manifest["audit"], indent=2))
     print("Missing inputs:", "; ".join(manifest["missing_inputs"]))

@@ -76,29 +76,39 @@ def validate_2025_calendar(schedule):
 def parse_release(path):
     """Read original release narrative, never revised historical CPI tables."""
     path = Path(path)
-    soup = BeautifulSoup(path.read_bytes(), "html.parser")
-    pre = soup.find("pre")
-    if pre is None:
-        raise UnsupportedInput(f"No original release narrative in {path.name}")
-    text = " ".join(pre.get_text(" ").split())
+    if path.suffix == ".txt":
+        text = " ".join(re.sub(r"(?m)^L\d+: ?", "", path.read_text()).split())
+    else:
+        soup = BeautifulSoup(path.read_bytes(), "html.parser")
+        pre = soup.find("pre")
+        if pre is None:
+            raise UnsupportedInput(f"No original release narrative in {path.name}")
+        text = " ".join(pre.get_text(" ").split())
     publication = re.search(r"8:30 a\.m\. \(ET\).*?([A-Z][a-z]+) (\d{1,2}), (\d{4})", text)
     period = re.search(r"CONSUMER PRICE INDEX [-–] ([A-Z]+) (\d{4})", text)
     reading = re.search(r"Consumer Price Index for All Urban Consumers \(CPI-U\) "
                         r"(increased|rose|decreased|declined|fell) (\d+(?:\.\d+)?) percent", text)
+    if reading is None:
+        # Original releases also express a zero monthly change without a number.
+        text = re.sub(r"(Consumer Price Index for All Urban Consumers \(CPI-U\)) (?:was |remained )?unchanged",
+                      r"\1 increased 0.0 percent", text)
+        reading = re.search(r"Consumer Price Index for All Urban Consumers \(CPI-U\) "
+                            r"(increased|rose|decreased|declined|fell) (\d+(?:\.\d+)?) percent", text)
     if not publication or not period or not reading:
         raise UnsupportedInput(f"Unrecognized CPI narrative in {path.name}; manual review required")
     month, day, year = publication.groups()
     dt = datetime(int(year), MONTHS[month], int(day), 8, 30, tzinfo=ZoneInfo("America/New_York"))
     expected_name = f"cpi_{dt:%m%d%Y}.htm"
-    if path.name != expected_name:
+    if path.stem != Path(expected_name).stem:
         raise UnsupportedInput("CPI filename and publication date disagree")
     # Verify the extracted value describes the seasonally adjusted monthly headline.
     if "seasonally adjusted basis" not in text[reading.end():reading.end() + 160]:
         raise UnsupportedInput("CPI units/adjustment could not be verified")
     value = float(reading[2]) * (-1 if reading[1] in {"decreased", "declined", "fell"} else 1)
     return dict(published_at=instant(dt), reference_month=f"{period[2]}-{MONTHS[period[1].title()]:02}",
-                cpi_percent=value, source_url=f"https://www.bls.gov/news.release/archives/{path.name}",
-                sha256=digest(path), locator="original preformatted narrative, first paragraph")
+                cpi_percent=value, source_url=f"https://www.bls.gov/news.release/archives/{expected_name}",
+                sha256=digest(path), locator=("Official archive text retrieved through web tool; original narrative first paragraph"
+                    if path.suffix == ".txt" else "original preformatted narrative, first paragraph"))
 
 
 def audit_prices(frame, schedule):
@@ -164,7 +174,7 @@ def audit_prices(frame, schedule):
     return pd.DataFrame(daily), audit, pd.DataFrame(details)
 
 
-def build(root):
+def build(root, cpi_directory=None):
     """Build the bounded June example. Every output is under the configured local root."""
     root = Path(root)
     raw = root / "raw"
@@ -173,12 +183,19 @@ def build(root):
     if "2025" not in PdfReader(pdf).pages[0].extract_text():
         raise UnsupportedInput("Expected the 2025 NYSE calendar")
     release_paths = sorted((raw / "bls").glob("cpi_*.htm"))
+    if cpi_directory:
+        extra = {p.stem: p for p in Path(cpi_directory).glob("cpi_*") if p.suffix in {".htm", ".txt"}}
+        extra.update({p.stem: p for p in release_paths})
+        release_paths = sorted(extra.values())
     releases = pd.DataFrame([parse_release(p) for p in release_paths]).sort_values("published_at")
     expected_periods = ["2025-04", "2025-05", "2025-06", "2025-07"]
-    if (releases.reference_month.tolist() != expected_periods
-        or releases.published_at.tolist() != ["2025-05-13T12:30:00Z", "2025-06-11T12:30:00Z",
+    current = releases[releases.reference_month.isin(expected_periods)]
+    if (current.reference_month.tolist() != expected_periods
+        or current.published_at.tolist() != ["2025-05-13T12:30:00Z", "2025-06-11T12:30:00Z",
                                               "2025-07-15T12:30:00Z", "2025-08-12T12:30:00Z"]):
-        raise UnsupportedInput("This snapshot requires exactly the four April–July 2025 CPI vintages")
+        raise UnsupportedInput("This snapshot requires the four original April–July 2025 CPI vintages")
+    if releases.reference_month.tolist() != pd.period_range(releases.reference_month.iloc[0], releases.reference_month.iloc[-1], freq="M").astype(str).tolist():
+        raise UnsupportedInput("CPI reference months must be consecutive and unique; missing vintages must be obtained")
     frame = pd.read_parquet(spy)
     schedule = sessions(f"{frame.datetime.min().year}-01-01", f"{frame.datetime.max().year}-12-31")
     calendar_check = validate_2025_calendar(schedule)
@@ -189,7 +206,7 @@ def build(root):
     sources = [dict(path=str(p.relative_to(root)), sha256=digest(p), bytes=p.stat().st_size)
                for p in [spy, *release_paths, pdf]]
     packages = {p: version(p) for p in ["pandas", "numpy", "pyarrow", "exchange-calendars", "beautifulsoup4", "pypdf", "tzdata"]}
-    identity = dict(policy=POLICY, sources=sources, packages=packages, cutoff=CUTOFF)
+    identity = dict(policy=POLICY + ("-expanded-context252-v2" if cpi_directory else ""), sources=sources, packages=packages, cutoff=CUTOFF)
     dataset_version = "spy-" + sha256(json.dumps(identity, sort_keys=True).encode()).hexdigest()[:20]
     directory = root / "processed" / dataset_version
     directory.mkdir(parents=True, exist_ok=True)
@@ -199,7 +216,7 @@ def build(root):
     manifest = dict(**identity, dataset_version=dataset_version, target_id="SPY",
         downloaded_at="unknown; supplied locally by Aashna", audited_on="2026-11-08",
         base_date=base.date, base_value=100.0, base_close_usd=float(base.close_usd),
-        supported_example_dates=DATES, assumptions=WARNINGS,
+        supported_example_dates=DATES, assumptions=WARNINGS[:3] + (["At most 252 contiguous observed sessions; missing closes truncate the context, with no imputation."] if cpi_directory else WARNINGS[3:]),
         units=dict(close_usd="USD, split-adjusted only", level="first eligible close = 100",
                    cpi_percent="headline CPI-U seasonally adjusted month-on-month percent (0.2 means 0.2%)",
                    volume="split-adjusted shares", release_indicator="1 only on publication session"),
@@ -213,8 +230,8 @@ def build(root):
                     bls="https://www.bls.gov/opub/copyright-information.htm",
                     nyse="https://www.nyse.com/publicdocs/ICE_NYSE_2025_Yearly_Trading_Calendar.pdf",
                     attribution="HF Data Library, Ahmed Elkassabgi; Data provided for free by IEX. CPI: U.S. Bureau of Labor Statistics. Calendar: NYSE/ICE; exchange_calendars."),
-        audit=audit, calendar_validation=calendar_check, missing_inputs=["Original CPI publications before May 13, 2025",
-            "Eight completed distinct analogue releases and their preceding vintages",
+        audit=audit, calendar_validation=calendar_check, missing_inputs=[f"Original CPI publications before {releases.published_at.iloc[0][:10]}",
+            "Analogue matching support is evaluated separately for each assumption and cutoff",
             "Historical delivery timestamps and point-in-time corporate-action vintages",
             "SPY before March 7, 2022 (including 2008)"])
     tables = {"spy_daily.parquet": history, "cpi_releases.parquet": releases,
@@ -241,21 +258,54 @@ class MarketInputs:
         self.releases = pd.read_parquet(self.directory / "cpi_releases.parquet")
         self.schedule = pd.read_parquet(self.directory / "sessions.parquet")
 
-    def request(self, cpi_percent, model_version):
-        if not math.isfinite(cpi_percent) or not -2 <= cpi_percent <= 2:
-            raise UnsupportedInput("Supported research assumption range is -2% to 2% monthly CPI")
-        if self.manifest["cutoff"] != CUTOFF:
-            raise UnsupportedInput("Only the frozen June 11 cutoff is implemented")
-        cutoff = pd.Timestamp(self.manifest["cutoff"])
+    def validate_segment(self, request, model_version):
+        """Bind observed prefix to the snapshot; permit only contiguous simulated continuations."""
+        seed = self.request(0.2, model_version)
+        for key in ("target_id", "base_date", "base_value", "evidence_cutoff", "dataset_version", "model_version"):
+            if getattr(request, key) != getattr(seed, key):
+                raise UnsupportedInput(f"Unsupported {key}")
+        size = len(seed.history)
+        if request.history[:size] != seed.history:
+            raise UnsupportedInput("Observed history differs from frozen snapshot")
+        simulated = request.history[size:]
+        if any(r.kind != "simulated" or r.available_at is not None or r.level <= 0 for r in simulated):
+            raise UnsupportedInput("Only preceding simulated medians may extend frozen history")
+        rows = [*simulated, *request.future]
+        calendar = self.schedule[self.schedule.open > pd.Timestamp(request.evidence_cutoff)].date.tolist()
+        if len(rows) > 65 or [r.date for r in rows] != calendar[:len(rows)]:
+            raise UnsupportedInput("Require contiguous trading sessions within the 65-session horizon")
+        previous = seed.history[-1].cpi_percent
+        for row in rows:
+            if not -2 <= row.cpi_percent <= 2:
+                raise UnsupportedInput("Monthly CPI assumption outside -2% to 2%")
+            if row.release_indicator and row.date not in {"2025-06-11", "2025-07-15", "2025-08-12"}:
+                raise UnsupportedInput("Unsupported intervention date")
+            if not row.release_indicator and row.cpi_percent != previous:
+                raise UnsupportedInput("CPI may change only at an explicit release intervention")
+            previous = row.cpi_percent
+        return request
+
+    def historical_rows(self, cutoff):
+        cutoff = pd.Timestamp(cutoff)
         releases = self.releases[pd.to_datetime(self.releases.published_at) <= cutoff]
         if releases.empty:
             raise UnsupportedInput("No CPI vintage available at cutoff")
         prices = self.prices[pd.to_datetime(self.prices.available_at) <= cutoff]
         earliest = pd.Timestamp(releases.published_at.iloc[0])
         expected = self.schedule[(self.schedule.close >= earliest) & (self.schedule.close <= cutoff)]
-        rows = []
         by_date = prices.set_index("date")
+        missing = [i for i, d in enumerate(expected.date) if d not in by_date.index]
+        if missing:
+            expected = expected.iloc[missing[-1] + 1:]
+        expected = expected.tail(252)
+        rows = []
         previous_publication = None
+        if not expected.empty:
+            earlier = self.schedule[self.schedule.date < expected.date.iloc[0]]
+            if not earlier.empty:
+                prior = releases[pd.to_datetime(releases.published_at) <= earlier.close.iloc[-1]]
+                if not prior.empty:
+                    previous_publication = prior.published_at.iloc[-1]
         for session in expected.itertuples(index=False):
             if session.date not in by_date.index:
                 raise UnsupportedInput(f"Missing close at {session.date}; no filling allowed")
@@ -267,7 +317,16 @@ class MarketInputs:
                 release_indicator=int(release.published_at != previous_publication)))
             previous_publication = release.published_at
         if len(rows) < 20:
-            raise UnsupportedInput("At least 20 contiguous sessions with known CPI are required")
+            raise UnsupportedInput("Missing close or CPI history: at least 20 contiguous sessions with known CPI are required")
+        return rows
+
+    def request(self, cpi_percent, model_version):
+        if not math.isfinite(cpi_percent) or not -2 <= cpi_percent <= 2:
+            raise UnsupportedInput("Supported research assumption range is -2% to 2% monthly CPI")
+        if self.manifest["cutoff"] != CUTOFF:
+            raise UnsupportedInput("Only the frozen June 11 cutoff is implemented")
+        cutoff = pd.Timestamp(self.manifest["cutoff"])
+        rows = self.historical_rows(cutoff)
         future = self.schedule[self.schedule.open > cutoff].head(5).date.tolist()
         if future != DATES:
             raise UnsupportedInput("This loader supports only the frozen June 11 five-session example")

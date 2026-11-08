@@ -19,7 +19,7 @@ def fake_inputs():
     inputs = MarketInputs.__new__(MarketInputs)
     inputs.manifest = dict(cutoff=CUTOFF, base_date="2025-05-01", base_value=100.0,
                            dataset_version="test-only", assumptions=["Invented unit-test data"])
-    inputs.schedule = sessions("2025-05-01", "2025-06-30")
+    inputs.schedule = sessions("2025-05-01", "2025-08-31")
     available = inputs.schedule[inputs.schedule.close < pd.Timestamp(CUTOFF)]
     inputs.prices = pd.DataFrame(dict(date=available.date,
         available_at=available.close.map(lambda d: d.isoformat()), level=np.arange(len(available)) + 100.0))
@@ -118,6 +118,48 @@ class MarketTests(unittest.TestCase):
         past, future = model_frames(a)
         self.assertNotIn("target", future)
         self.assertTrue((pd.concat([past.timestamp, future.timestamp]).diff().dropna() == pd.Timedelta(days=1)).all())
+
+    def test_archive_text_zero_and_winter_publication(self):
+        with TemporaryDirectory() as tmp:
+            p = Path(tmp) / "cpi_01152025.txt"
+            p.write_text("L1: 8:30 a.m. (ET) Wednesday, January 15, 2025\n"
+                "L2: CONSUMER PRICE INDEX - DECEMBER 2024\n"
+                "L3: The Consumer Price Index for All Urban Consumers (CPI-U) was unchanged\n"
+                "L4: in December on a seasonally adjusted basis.")
+            r = parse_release(p)
+            self.assertEqual(r["cpi_percent"], 0.)
+            self.assertEqual(r["published_at"], "2025-01-15T13:30:00Z")
+            self.assertTrue(r["source_url"].endswith("cpi_01152025.htm"))
+
+    def test_context_truncates_after_gap_without_imputation_or_false_pulse(self):
+        i = fake_inputs()
+        i.releases.loc[0, "published_at"] = "2025-05-01T12:30:00Z"
+        i.prices = i.prices[i.prices.date != "2025-05-02"]
+        rows = i.historical_rows(CUTOFF)
+        self.assertEqual(rows[0].date, "2025-05-05")
+        self.assertEqual(rows[0].release_indicator, 0)
+        self.assertNotIn("2025-05-02", [r.date for r in rows])
+
+    def test_evaluation_cutoff_and_scoring_are_separate(self):
+        from training.evaluation import EvaluationInputs, score
+        i = fake_inputs()
+        fold = EvaluationInputs(i, "2025-06-11T12:30:00Z")
+        request = fold.request(.4, MODEL_VERSION)
+        self.assertEqual(request.evidence_cutoff, CUTOFF)
+        pipeline = FakePipeline()
+        result = ChronosAdapter(fold, pipeline).forecast_segment(request)
+        self.assertEqual(result.status, "supported")
+        before = request.model_dump()
+        actuals = [dict(date=p.date, level=102.) for p in result.points]
+        metrics = score(result.points, actuals)
+        self.assertEqual(metrics["mean_absolute_index_error"], 2.)
+        self.assertEqual(metrics["interval_coverage"], 0.)
+        self.assertEqual(metrics["mean_interval_width"], 2.)
+        self.assertEqual(request.model_dump(), before)
+        with self.assertRaises(UnsupportedInput):
+            score(result.points, actuals[::-1])
+        with self.assertRaisesRegex(UnsupportedInput, "exceeds"):
+            EvaluationInputs(i, "2025-07-15T12:30:00Z")
 
     def test_missing_history_and_out_of_range_are_explicit(self):
         i = fake_inputs()

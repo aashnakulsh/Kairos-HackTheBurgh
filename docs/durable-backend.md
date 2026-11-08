@@ -1,5 +1,7 @@
 # Durable backend milestone and host handoff
 
+Current real-data/reveal/three-prompt integration: see [real-data-adapter.md](real-data-adapter.md). The synthetic milestone details below remain applicable to fixture mode.
+
 Current update: Aashna and Aditya work together in this folder/chat. The bounded
 June real-data path is now available through `APP_MODE=research`; see
 [the research API startup and tests](real-data-adapter.md#run-the-research-api).
