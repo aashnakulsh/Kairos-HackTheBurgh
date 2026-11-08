@@ -103,7 +103,7 @@ export function App() {
         <h1 className="game-title">US Market What If?</h1>
         <span className="data-label">{ws.run?.data_label ?? ws.caps?.data_label}</span>
         {ws.caps && <span>Data {ws.caps.coverage.first_session} to {ws.caps.coverage.last_session}</span>}
-        <span className="voyage">Voyage {prompts.length} / {ws.legs} · {outlook}</span>
+        <span className="voyage">Voyage {prompts.length} / {ws.legs} · {ws.pending ? `${ws.pending}…` : outlook}</span>
         <button type="button" className="button button-reveal" onClick={ws.toggleReveal} aria-pressed={ws.reveal !== null}
           disabled={!ws.reveal && !points.some(p => p.kind === "simulated")}>
           {ws.reveal ? "Hide actual history" : "Reveal actual history"}
@@ -112,10 +112,10 @@ export function App() {
       {finished && <button type="button" className="button end-journey" onClick={() => setEndRequested(true)}>End journey</button>}
       <section className="stage">
         {selected
-          ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} />
+          ? <NarrativePanel prompt={selected} panel={ws.run?.panels[selected.id]} trend={trends[selected.id]} description={ws.description?.prompt_id === selected.id ? ws.description.description : undefined} />
           : !!prompts.length && <NoteRow prompts={prompts} trends={trends} onSelect={ws.selectPrompt} />}
         <Chart run={ws.run} draw={ws.draw} viewport={ws.viewport} selectedId={ws.selectedId}
-          reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.deletePrompt} />
+          canDelete={!ws.serverMode} reveal={ws.reveal} reducedMotion={reducedMotion} onSelectPrompt={ws.selectPrompt} onDeletePrompt={ws.deletePrompt} />
         <Timeline viewport={ws.viewport} onViewportChange={ws.setViewport} />
       </section>
       {composer}

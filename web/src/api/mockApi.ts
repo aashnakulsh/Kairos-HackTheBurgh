@@ -124,6 +124,10 @@ export function createMockApi(): ReturnType<typeof createApi> {
   }
 
   return {
+    async describe() {
+      throw new Error("OpenAI descriptions are available only in server mode.");
+    },
+
     async capabilities(): Promise<Capabilities> {
       return {
         contract_version: "1", mode: "fixture", data_label: LABEL, targets: ["SPY"], unit: "index", frequency: "trading_session",

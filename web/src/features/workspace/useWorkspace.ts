@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
 import { applyRun } from "../../api/applyRun.ts";
-import { ApiError, createApi, type DeletePromptRequest, type JourneySummary } from "../../api/client.ts";
+import { ApiError, createApi, descriptionRequest, matchesDescription, type DeletePromptRequest, type JourneySummary } from "../../api/client.ts";
 import { MAX_PROMPTS } from "../../config.ts";
 import { promptKey } from "./format.ts";
 import { createMockApi } from "../../api/mockApi.ts";
-import type { Capabilities, CommitRequest, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
+import type { Capabilities, CommitRequest, DescriptionResponse, RevealResponse, RunResponse, Viewport } from "../../generated/contracts.ts";
 import type { ChartProps } from "../chart/Chart.tsx";
 
 // shortcut: the in-browser mock is the default until the OpenAI parser lands; VITE_API=server uses the HTTP API.
-const api = import.meta.env.VITE_API === "server" ? createApi() : createMockApi();
+const serverMode = import.meta.env.VITE_API === "server";
+const api = serverMode ? createApi() : createMockApi();
 const STORAGE_KEY = "teamrelay.timeline_id";
 const LEGS_KEY = "teamrelay.legs";
 const USED_KEY = "teamrelay.used_prompts";
@@ -36,12 +37,23 @@ export function useWorkspace() {
   const [run, setRun] = useState<RunResponse | null>(null);
   const [draw, setDraw] = useState<ChartProps["draw"]>(null);
   const [text, setText] = useState("");
+  const [description, setDescription] = useState<DescriptionResponse | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [focusId, setFocusId] = useState<string | null>(null);
   const [pending, setPending] = useState<"Interpreting" | "Simulating" | "Deleting" | null>(null);
   const [notice, setNotice] = useState<Notice | null>(null);
   const [reveal, setReveal] = useState<RevealResponse | null>(null);
   const [started, setStarted] = useState(false);
+  useEffect(() => {
+    setDescription(null);
+    const promptId = selectedId ?? focusId;
+    if (!serverMode || !run || !promptId || !run.series.points.some(p => p.kind === "simulated" && p.segment_id === promptId)) return;
+    const controller = new AbortController();
+    createApi().describe(run.timeline_id, run.revision, descriptionRequest(run, promptId), controller.signal)
+      .then(response => { if (!controller.signal.aborted && matchesDescription(run, promptId, response)) setDescription(response); })
+      .catch(() => { /* The saved forecast remains usable if narration fails. */ });
+    return () => controller.abort();
+  }, [run, selectedId, focusId]);
   /** Every prompt submitted this journey (kept even after delete/replace); a repeat is refused. */
   const [used, setUsedState] = useState<string[]>(() => { try { return JSON.parse(recalled(USED_KEY) ?? "[]"); } catch { return []; } });
   const setUsed = (update: (list: string[]) => string[]) => setUsedState(prev => {
@@ -57,10 +69,19 @@ export function useWorkspace() {
   const runRef = useRef(run);
   const seq = useRef(0);
   const abort = useRef<AbortController | null>(null);
+  const revealAbort = useRef<AbortController | null>(null);
+  const revealSeq = useRef(0);
+  const cancelReveal = () => {
+    revealSeq.current++;
+    revealAbort.current?.abort();
+    revealAbort.current = null;
+  };
+  useEffect(() => () => cancelReveal(), []);
   const createId = useRef(crypto.randomUUID()); // reused until creation succeeds, so a blind retry is idempotent
   const stash = useRef(""); // unsent "Add prompt" text, restored when a selection is cancelled
 
   const install = (next: RunResponse, animate: boolean, from: string | null = null) => {
+    cancelReveal();
     runRef.current = next;
     setRun(next);
     setReveal(null);
@@ -205,6 +226,7 @@ export function useWorkspace() {
 
   /** Removes one prompt; only a successful response changes the graph, redrawn from the deleted prompt's start. */
   const deletePrompt = (id: string) => {
+    if (serverMode) { setNotice({ tone: "info", reason: "Deleting prompts is not available in server mode. Select a prompt to replace it." }); return; }
     const current = runRef.current;
     if (!current) return;
     const wasSelected = selectedId === id;
@@ -231,12 +253,31 @@ export function useWorkspace() {
 
   /** Toggles the actual-history overlay; hiding only drops the local copy, it never touches the run. */
   const toggleReveal = () => {
-    if (reveal) { setReveal(null); return; }
+    const wasLoading = revealAbort.current !== null;
+    cancelReveal();
+    if (reveal || wasLoading) { setReveal(null); return; }
     const current = runRef.current;
     if (!current) return;
-    api.reveal(current.timeline_id, current.revision).then(
-      r => { if (runRef.current?.revision === r.revision) setReveal(r); },
-      e => fail(e));
+    const controller = new AbortController();
+    revealAbort.current = controller;
+    const mine = revealSeq.current;
+    const isCurrent = () => !controller.signal.aborted && mine === revealSeq.current &&
+      runRef.current?.timeline_id === current.timeline_id && runRef.current?.revision === current.revision;
+    api.reveal(current.timeline_id, current.revision, controller.signal).then(r => {
+      if (!isCurrent()) return;
+      if (r.timeline_id !== current.timeline_id || r.revision !== current.revision || !r.series) {
+        setNotice({ tone: "error", reason: "Actual history did not match this timeline. Please try Reveal again." });
+        return;
+      }
+      if (!r.series.points.some(p => p.kind === "observed" && p.value !== null)) {
+        setNotice({ tone: "info", reason: "No actual market observations are available for this forecast period." });
+        return;
+      }
+      setNotice(null);
+      setReveal(r);
+    }).catch(e => { if (isCurrent()) return fail(e); }).finally(() => {
+      if (revealAbort.current === controller) revealAbort.current = null;
+    });
   };
 
   /** End screen: the backend's summary of the whole voyage for the current revision. */
@@ -244,6 +285,16 @@ export function useWorkspace() {
     const current = runRef.current;
     if (!current) return;
     setSummary(null);
+    if (serverMode) {
+      const simulated = current.series.points.filter(p => p.kind === "simulated");
+      const observed = current.series.points.filter(p => p.kind === "observed").at(-1);
+      const last = simulated.at(-1);
+      setSummary({ timeline_id: current.timeline_id, revision: current.revision, data_label: current.data_label,
+        headline: "Voyage complete", summary: "Your simulated journey is complete.",
+        net_change_percent: observed?.value && last?.value != null ? (last.value / observed.value - 1) * 100 : null,
+        legs: current.prompts.map(p => ({ prompt_id: p.id, display_number: p.display_number, text: p.text, change_percent: null })) });
+      return;
+    }
     api.summary(current.timeline_id, current.revision).then(
       r => { if (runRef.current?.revision === r.revision) setSummary(r); },
       e => fail(e));
@@ -251,6 +302,7 @@ export function useWorkspace() {
 
   /** Back to the start screen with a fresh timeline. The old timeline stays on the server untouched. */
   const newJourney = () => {
+    cancelReveal();
     abort.current?.abort();
     seq.current++;
     runRef.current = null;
@@ -265,7 +317,7 @@ export function useWorkspace() {
 
   return {
     caps, capsFailed, loadCaps, viewport, setViewport, run, draw, text, setText, selectedId, focusId,
-    pending, notice, reveal, used, started, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
+    pending, notice, reveal, used, started, description, serverMode, submit, selectPrompt, cancelSelection, deletePrompt, toggleReveal,
     legs, setLegs, summary, requestSummary, newJourney,
   };
 }

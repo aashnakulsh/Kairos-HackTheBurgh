@@ -5,18 +5,19 @@ import { clipPoints, domain, drawStart, fraction, isoDay, markers, ms, stackRows
 import "./chart.css";
 
 /** Plot margins in px; Timeline uses the same left/right so the scale and scrubber line up. */
-export const MARGIN = { l: 56, r: 24, b: 28 };
+export const MARGIN = { l: 80, r: 24, b: 28 };
 const LABEL_ROW = 24;
 const LABEL_GAP = 84;
 const CHART_FONT = "Helvetica Neue, Helvetica, Arial, sans-serif";
-/** y-axis value where the background sea's surface sits. */
-const SEA_LEVEL = 2000;
+/** Decorative sea position as a fraction of plot height, independent of market units. */
+const SEA_HEIGHT_FRACTION = 0.62;
 const TOOLTIP_HALF = 130; // half of .chart-tooltip's 240px max-width, plus a little air
 const FULL_DRAW_MS = 1200;
 const EDIT_DRAW_MS = 700;
 
 export interface ChartProps {
   run: RunResponse | null;
+  canDelete: boolean;
   /** Which committed revision to draw: `from` null = full draw, a date = suffix only. */
   draw: { revision: number; from: string | null; animate: boolean } | null;
   viewport: Viewport;
@@ -33,7 +34,7 @@ const only = (points: Point[], keep: (p: Point, next: Point | undefined) => bool
 const simulatedish = (p: Point, next: Point | undefined) =>
   p.kind === "simulated" || (p.kind === "observed" && next?.kind === "simulated");
 
-export function Chart({ run, draw, viewport, selectedId, reveal, reducedMotion, onSelectPrompt, onDeletePrompt }: ChartProps) {
+export function Chart({ run, draw, viewport, selectedId, reveal, reducedMotion, onSelectPrompt, onDeletePrompt, canDelete }: ChartProps) {
   const plotRef = useRef<HTMLDivElement>(null);
   const [{ width, height }, setSize] = useState({ width: 0, height: 0 });
   const [head, setHead] = useState(Infinity);
@@ -76,11 +77,10 @@ export function Chart({ run, draw, viewport, selectedId, reveal, reducedMotion, 
   const visibleMarks = marks.filter(m => ms(m.start) >= range[0] && ms(m.start) < range[1]);
   const rows = stackRows(visibleMarks.map(m => xOf(m.start)), LABEL_GAP);
   const top = (Math.max(-1, ...rows) + 1) * LABEL_ROW + 12;
-  // Same plot size, adjusted y scale: the top always clears the sea line, so the ship (sea → y max) always has room.
-  const [yLo, dataHi] = yRange(points);
-  const yHi = Math.max(dataHi, SEA_LEVEL * 1.25);
-  // Pixel y of SEA_LEVEL inside the plot, clamped to the plot area; the background sea reads it from data-sea-y.
-  const seaY = Math.min(Math.max(top + ((yHi - SEA_LEVEL) / (yHi - yLo)) * (height - MARGIN.b - top), top), height - MARGIN.b);
+  // Include actuals so revealing a move outside the forecast bands cannot clip it.
+  const [yLo, yHi] = yRange([...points, ...(reveal?.series.points ?? [])]);
+  // Keep the ship/sea framing without forcing the data axis to a fixed price level.
+  const seaY = top + SEA_HEIGHT_FRACTION * Math.max(0, height - MARGIN.b - top);
   const forkDate = points.find(p => p.kind === "simulated")?.date;
   const segments = new Set(points.map(p => p.segment_id).filter(Boolean));
 
@@ -126,7 +126,7 @@ export function Chart({ run, draw, viewport, selectedId, reveal, reducedMotion, 
       // namelength -1: never truncate "Simulated median" / "Observed"; larger text so the whole value shows.
       hoverlabel: { bgcolor: "#4a2a10", bordercolor: "#7a4a22", namelength: -1, font: { family: CHART_FONT, size: 14, color: "#fbbf24" } },
       xaxis: { type: "date", range: [isoDay(range[0]), isoDay(range[1])], fixedrange: true, gridcolor: "rgba(255,255,255,0.06)" },
-      yaxis: { range: [yLo, yHi], hoverformat: ",.2f", fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
+      yaxis: { title: { text: `${run?.series.target_id ?? "SPY"} index (${run?.series.base_value ?? 100} at base date)` }, automargin: true, range: [yLo, yHi], hoverformat: ",.2f", fixedrange: true, gridcolor: "rgba(255,255,255,0.06)", zeroline: false },
       shapes,
       annotations: forkDate ? [{ x: forkDate, xref: "x", yref: "paper", y: 0, yanchor: "bottom", xanchor: "left",
         text: "simulated →", showarrow: false, font: { color: "#7dd3fc", size: 11 } }] : [],
@@ -164,10 +164,10 @@ export function Chart({ run, draw, viewport, selectedId, reveal, reducedMotion, 
             <button type="button" className="chart-marker-select" aria-pressed={m.id === selectedId}
               aria-label={`${m.title}. Select to replace.`} onClick={() => onSelectPrompt(m.id)}>
               {m.label}
-              <span className="chart-tooltip" aria-hidden="true">{m.title}</span>
+              <span className="chart-tooltip" aria-hidden="true">{run?.prompts.find(p => p.id === m.id)?.text ?? m.title}</span>
             </button>
-            <button type="button" className="chart-marker-delete" aria-label={`Delete ${m.label}`}
-              onClick={() => onDeletePrompt(m.id)}>×</button>
+            {canDelete && <button type="button" className="chart-marker-delete" aria-label={`Delete ${m.label}`}
+              onClick={() => onDeletePrompt(m.id)}>×</button>}
           </div>
         ))}
       </div>

@@ -2,10 +2,18 @@ import type { CSSProperties } from "react";
 import type { Panel, Prompt } from "../../generated/contracts.ts";
 import { formatImpact, rankImpacts, type Trend } from "./format.ts";
 
-const OPERATION = { set: "Set", add_pp: "Add", carry: "Carry forward" } as const;
+const OPERATION = {
+  set: "Set",
+  add_pp: "Add",
+  carry: "Carry forward",
+  scenario: "Scenario",
+} as const;
 
 /** What the backend resolved, so the user can see the scope the prompt applies to. */
 function scope(p: Prompt) {
+  if (p.scenario) {
+    return `${p.scenario.title} · ${p.effective_start} · ${p.scenario.horizon_sessions} trading sessions`;
+  }
   const amount = p.value === null ? "" : ` ${p.value}${p.unit === "percent" ? "%" : " pp"}`;
   const resolved = p.resolved_value !== null && p.operation !== "set" ? ` → ${p.resolved_value}%` : "";
   const when = p.scope === "release" ? `release ${p.release_dates.join(", ")}`
@@ -43,7 +51,7 @@ export function NoteRow({ prompts, trends, onSelect }: { prompts: Prompt[]; tren
 }
 
 /** Selected prompt: one wide, centred paper note with the full description. */
-export function NarrativePanel({ prompt, panel, trend }: { prompt: Prompt; panel: Panel | undefined; trend: Trend }) {
+export function NarrativePanel({ prompt, panel, trend, description }: { prompt: Prompt; panel: Panel | undefined; trend: Trend; description?: string }) {
   const evidence = new Map(panel?.evidence.map(e => [e.id, e]));
   const markets = (exposure: "direct" | "indirect") => panel?.impacts.filter(i => i.exposure === exposure).map(i => `${i.emoji} ${i.name}`) ?? [];
   const direct = markets("direct"), indirect = markets("indirect");
@@ -57,7 +65,7 @@ export function NarrativePanel({ prompt, panel, trend }: { prompt: Prompt; panel
       <p className="narrative-scope">{scope(prompt)}</p>
       {prompt.status === "unsupported" && <p className="narrative-warning">Unsupported: no numeric forecast for this prompt.</p>}
       {!panel ? <p>No description returned; showing the resolved instruction only.</p> : <>
-        <p>{panel.summary}</p>
+        <p>{description ?? panel.summary}</p>
         {!!direct.length && <p><strong>Direct:</strong> {direct.join(", ")}</p>}
         {!!indirect.length && <p><strong>Indirect:</strong> {indirect.join(", ")}</p>}
         {panel.hypotheses.map((h, i) => (
